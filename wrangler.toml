@@ -1,0 +1,31 @@
+name = "grindmate"
+main = "src/index.ts"
+compatibility_date = "2024-03-01"
+
+# Workers AI binding (Llama 3.3)
+[ai]
+binding = "AI"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "grindmate-db"
+database_id = "73c2b669-abfc-4861-8668-ce96c2c4eecf"
+
+# Durable Objects (Agent state)
+[durable_objects]
+bindings = [
+  { name = "GRINDMATE_AGENT", class_name = "GrindMateAgent" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["GrindMateAgent"]
+
+# Static assets (frontend)
+[site]
+bucket = "./public"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "production"

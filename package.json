@@ -1,0 +1,21 @@
+{
+  "name": "grindmate",
+  "version": "1.0.0",
+  "description": "AI-powered DSA practice companion built on Cloudflare",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 execute grindmate-db --local --file=./schema.sql",
+    "db:migrate:prod": "wrangler d1 execute grindmate-db --remote --file=./schema.sql",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240222.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^4.75.0"
+  }
+}
