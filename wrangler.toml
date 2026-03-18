@@ -20,7 +20,7 @@ bindings = [
 
 [[migrations]]
 tag = "v1"
-new_classes = ["GrindMateAgent"]
+new_sqlite_classes = ["GrindMateAgent"]
 
 # Static assets (frontend)
 [site]
