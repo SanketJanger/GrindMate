@@ -1,210 +1,92 @@
-# 🎯 GrindMate
+# GrindMate
 
-**Your AI-powered DSA Practice Companion** — Track LeetCode progress, identify weak patterns, and get personalized recommendations.
+A chat-based tool that helps me track my LeetCode progress while grinding for interviews.
 
-Built on Cloudflare Workers, Durable Objects, D1, and Workers AI (Llama 3.3).
+## Why I Built This
 
-![GrindMate Demo](https://via.placeholder.com/800x400?text=GrindMate+Demo)
+I was mass-applying to jobs and doing 3-4 LeetCode problems a day. The problem? I had no system. I'd solve a sliding window problem, then forget about that pattern for two weeks. I'd redo problems I'd already solved because I couldn't remember what I'd done.
 
-## ✨ Features
+So I built GrindMate, a simple chat interface where I log problems as I solve them, and it tracks patterns, identifies weak areas, and tells me what to practice next.
 
-- **📝 Log Problems** — Natural language logging: "Solved LC 121 Two Sum, easy, 15 min"
-- **📊 Pattern Tracking** — Automatically categorizes problems (DP, sliding window, graphs, etc.)
-- **🎯 Smart Recommendations** — AI suggests what to practice based on your gaps
-- **🔥 Streak Tracking** — Stay motivated with daily streaks
-- **📈 Weekly Summaries** — Review progress and identify trends
-- **💬 Conversational AI** — Chat naturally, powered by Llama 3.3
+## What It Does
 
-## 🏗️ Architecture
-
+**Log problems naturally:**
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Cloudflare Pages                        │
-│                      (React Chat UI)                        │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Cloudflare Worker                         │
-│                    (Hono Router)                            │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Durable Object (Agent)                      │
-│  • Stateful conversation memory                             │
-│  • Intent detection & routing                               │
-│  • Database operations                                      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-              ┌────────────┴────────────┐
-              ▼                         ▼
-┌──────────────────────┐    ┌──────────────────────┐
-│    D1 Database       │    │   Workers AI         │
-│  • Problems log      │    │  • Llama 3.3 70B     │
-│  • Pattern progress  │    │  • Intent detection  │
-│  • Daily activity    │    │  • Recommendations   │
-└──────────────────────┘    └──────────────────────┘
+"Solved LC 1 Two Sum, easy, 10 min"
 ```
 
-## 🚀 Quick Start
+**Track patterns automatically:**
+- It figures out that Two Sum is arrays + hash_map
+- Keeps count of how many problems I've done per pattern
+- Tracks which patterns I haven't touched in a while
 
-### Prerequisites
-
-- Node.js 18+
-- Cloudflare account (free tier works)
-- Wrangler CLI
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/YOUR_USERNAME/GrindMate.git
-cd GrindMate
-npm install
-```
-
-### 2. Create D1 Database
-
-```bash
-# Create the database
-wrangler d1 create grindmate-db
-
-# Copy the database_id from output and update wrangler.toml
-```
-
-Update `wrangler.toml` with your database ID:
-```toml
-[[d1_databases]]
-binding = "DB"
-database_name = "grindmate-db"
-database_id = "YOUR_DATABASE_ID_HERE"  # ← Replace this
-```
-
-### 3. Run Database Migrations
-
-```bash
-# Local development
-npm run db:migrate:local
-
-# Production
-npm run db:migrate:prod
-```
-
-### 4. Local Development
-
-```bash
-npm run dev
-```
-
-Visit `http://localhost:8787`
-
-### 5. Deploy to Cloudflare
-
-```bash
-npm run deploy
-```
-
-## 📖 Usage
-
-### Log a Problem
-
-```
-"Solved LC 121 Best Time to Buy Stock, easy, took 15 min"
-"Just finished Two Sum, medium difficulty"
-"Completed LC 42 Trapping Rain Water - hard, struggled with this one"
-```
-
-### Get Recommendations
-
+**Get recommendations:**
 ```
 "What should I practice today?"
-"Give me a recommendation"
-"What patterns am I weak at?"
+→ "You haven't done DP in 9 days. Try LC 70 Climbing Stairs."
 ```
 
-### View Stats
-
+**See progress:**
 ```
 "Show my stats"
-"How am I doing?"
-"Progress report"
+→ Total: 23 problems | Streak: 5 days | Weak: DP, Graphs
 ```
 
-### Weekly Summary
+## Tech Stack
 
-```
-"Weekly summary"
-"How was my week?"
-"Weekly report"
-```
+- **Cloudflare Workers** — Serverless backend
+- **Durable Objects** — Persistent chat state per user
+- **D1** — SQLite database for problem logs
+- **Workers AI** — Llama 3.3 for natural language parsing
 
-## 🛠️ Tech Stack
+## Run Locally
 
-| Component | Technology |
-|-----------|------------|
-| **Runtime** | Cloudflare Workers |
-| **State** | Durable Objects |
-| **Database** | D1 (SQLite) |
-| **AI** | Workers AI (Llama 3.3 70B) |
-| **Router** | Hono |
-| **Frontend** | Vanilla JS + Tailwind |
+```bash
+git clone https://github.com/SanketJanger/GrindMate.git
+cd GrindMate
+npm install
 
-## 📊 Database Schema
+# Create D1 database
+wrangler d1 create grindmate-db
+# Update wrangler.toml with your database_id
 
-```sql
--- Problems solved
-CREATE TABLE problems (
-    id INTEGER PRIMARY KEY,
-    leetcode_id INTEGER,
-    title TEXT,
-    difficulty TEXT,
-    patterns TEXT,      -- JSON array
-    time_spent_min INTEGER,
-    struggled INTEGER,
-    solved_at TEXT
-);
+# Run migrations
+wrangler d1 execute grindmate-db --local --file=./schema.sql
 
--- Daily activity (streaks)
-CREATE TABLE daily_activity (
-    date TEXT PRIMARY KEY,
-    problems_solved INTEGER,
-    total_time_min INTEGER
-);
-
--- Pattern mastery
-CREATE TABLE pattern_progress (
-    pattern TEXT PRIMARY KEY,
-    solved_count INTEGER,
-    last_practiced TEXT
-);
+# Start dev server
+npx wrangler dev --remote
 ```
 
-## 🎯 Patterns Tracked
+## Project Structure
 
-- Arrays, Strings, Two Pointers, Sliding Window
-- Hash Map, Stack, Queue, Linked List
-- Binary Search, Sorting, Heap
-- Trees, Graphs, BFS, DFS
-- Dynamic Programming, Greedy, Backtracking
-- Bit Manipulation, Math, Design
+```
+src/
+├── index.ts      # API routes
+├── agent.ts      # Durable Object (handles chat + state)
+├── ai.ts         # Workers AI integration
+├── prompts.ts    # LLM prompts for parsing
+└── types.ts      # TypeScript types
 
-## 🔮 Roadmap
+schema.sql        # Database tables
+wrangler.toml     # Cloudflare config
+```
 
-- [ ] LeetCode API integration (auto-import solved problems)
-- [ ] Spaced repetition reminders
-- [ ] Problem difficulty calibration based on your solve times
-- [ ] Export progress to CSV/JSON
-- [ ] Multi-user support with auth
-- [ ] Discord/Slack integration
+## Live Demo
 
-
-## 🙏 Acknowledgments
-
-- [Cloudflare Workers](https://workers.cloudflare.com/) — Serverless compute
-- [Workers AI](https://developers.cloudflare.com/workers-ai/) — Llama 3.3 inference
-- [Hono](https://hono.dev/) — Lightweight web framework
-- [LeetCode](https://leetcode.com/) — The grind never stops
+https://grindmate.sanketjanger.workers.dev
 
 ---
 
-**Built with ☕ and determination by [Sanket Janger](https://github.com/SanketJanger)**
+## What's Next
+
+Things I'm planning to add when I have time:
+
+- **Dashboard with charts** — Visual progress tracking, pattern heatmaps, streak calendar
+- **GitHub/Google login** — So I can use it across devices
+- **LeetCode sync** — Auto-import solved problems instead of typing them manually
+- **Spaced repetition** — "Hey, you struggled with this DP problem 2 weeks ago. Try it again."
+- **Daily digest** — Morning notification with what to practice today
+- **Contest tracking** — Log weekly contest performance and rating changes
+
+
+Built during my job search grind. If you're also grinding, good luck, we're all gonna make it.
