@@ -197,9 +197,6 @@ CREATE TABLE pattern_progress (
 - [ ] Multi-user support with auth
 - [ ] Discord/Slack integration
 
-## 📝 License
-
-MIT
 
 ## 🙏 Acknowledgments
 
