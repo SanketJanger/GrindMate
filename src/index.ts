@@ -1,38 +1,192 @@
-// GrindMate - Main Worker Entry Point
-// Routes requests to Durable Object Agent
-
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { Env } from './types';
+import {
+  getGitHubAuthURL,
+  getGitHubToken,
+  getGitHubUser,
+  createSessionToken,
+  verifySessionToken,
+  getCookie,
+  setCookie,
+  clearCookie,
+} from './auth';
+import { fetchLeetCodeProfile, fetchProblemDetails } from './leetcode';
 
-// Re-export the Durable Object
 export { GrindMateAgent } from './agent';
 
-const app = new Hono<{ Bindings: Env }>();
+interface AuthEnv extends Env {
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  SESSION_SECRET: string;
+  FRONTEND_URL: string;
+}
 
-// Enable CORS for frontend
+const app = new Hono<{ Bindings: AuthEnv }>();
+
 app.use('*', cors({
-  origin: '*',
+  origin: (origin, c) => {
+    const frontendUrl = (c.env as AuthEnv).FRONTEND_URL || 'http://localhost:5173';
+    const allowed = [frontendUrl, 'http://localhost:5173', 'http://localhost:5174'];
+    return allowed.includes(origin) ? origin : allowed[0];
+  },
   allowMethods: ['GET', 'POST', 'OPTIONS'],
   allowHeaders: ['Content-Type'],
+  credentials: true,
 }));
 
-// Health check
+function getCurrentUser(request: Request, secret: string): string | null {
+  const token = getCookie(request, 'session');
+  if (!token) return null;
+  return verifySessionToken(token, secret);
+}
+
 app.get('/health', (c) => {
   return c.json({ status: 'ok', service: 'grindmate' });
 });
 
-// Get or create agent for user
-function getAgent(env: Env, userId: string = 'default'): DurableObjectStub {
+app.get('/api/me', (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ user: null });
+  }
+  return c.json({ user: { id: userId } });
+});
+
+app.get('/auth/login', (c) => {
+  const redirectUri = new URL('/auth/callback', c.req.url).toString();
+  const authUrl = getGitHubAuthURL(c.env.GITHUB_CLIENT_ID, redirectUri);
+  return c.redirect(authUrl);
+});
+
+app.get('/auth/callback', async (c) => {
+  const code = c.req.query('code');
+  if (!code) {
+    return c.text('Missing code', 400);
+  }
+
+  const token = await getGitHubToken(
+    code,
+    c.env.GITHUB_CLIENT_ID,
+    c.env.GITHUB_CLIENT_SECRET
+  );
+
+  if (!token) {
+    return c.text('Failed to get token', 400);
+  }
+
+  const user = await getGitHubUser(token);
+  if (!user) {
+    return c.text('Failed to get user', 400);
+  }
+
+  const sessionToken = createSessionToken(user.login, c.env.SESSION_SECRET);
+  const frontendUrl = c.env.FRONTEND_URL || 'http://localhost:5173';
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: frontendUrl,
+      'Set-Cookie': setCookie('session', sessionToken),
+    },
+  });
+});
+
+app.get('/auth/logout', (c) => {
+  const frontendUrl = c.env.FRONTEND_URL || 'http://localhost:5173';
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: frontendUrl,
+      'Set-Cookie': clearCookie('session'),
+    },
+  });
+});
+
+function getAgent(env: AuthEnv, userId: string = 'default'): DurableObjectStub {
   const id = env.GRINDMATE_AGENT.idFromName(userId);
   return env.GRINDMATE_AGENT.get(id);
 }
 
-// Chat endpoint - POST /api/chat
+app.get('/api/leetcode/:username', async (c) => {
+  const username = c.req.param('username');
+  
+  const profile = await fetchLeetCodeProfile(username);
+  
+  if (!profile) {
+    return c.json({ error: 'User not found or LeetCode API error' }, 404);
+  }
+  
+  return c.json(profile);
+});
+
+app.post('/api/leetcode/import', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  
+  try {
+    const { username } = await c.req.json();
+    
+    if (!username) {
+      return c.json({ error: 'Username required' }, 400);
+    }
+    
+    const profile = await fetchLeetCodeProfile(username);
+    
+    if (!profile) {
+      return c.json({ error: 'User not found' }, 404);
+    }
+    
+    // Import recent accepted submissions
+    const agent = getAgent(c.env, userId);
+    let imported = 0;
+    
+    for (const submission of profile.recentSubmissions.slice(0, 10)) {
+      // Fetch problem details for tags
+      const details = await fetchProblemDetails(submission.titleSlug);
+      
+      if (details) {
+        // Convert tags to patterns
+        const patterns = details.topicTags
+          .map(t => t.name.toLowerCase().replace(/ /g, '_'))
+          .slice(0, 3);
+        
+        // Log via agent
+        const message = `Solved ${details.title}, ${details.difficulty.toLowerCase()}`;
+        
+        await agent.fetch(new Request('http://agent/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: details.title,
+            difficulty: details.difficulty.toLowerCase(),
+            patterns: patterns,
+            timestamp: submission.timestamp,
+          })
+        }));
+        
+        imported++;
+      }
+    }
+    
+    return c.json({ 
+      success: true, 
+      imported,
+      solved: profile.solved 
+    });
+    
+  } catch (error) {
+    console.error('Import error:', error);
+    return c.json({ error: 'Import failed' }, 500);
+  }
+});
+
 app.post('/api/chat', async (c) => {
   try {
+    const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
     const body = await c.req.json();
-    const userId = body.userId || 'default';
     const message = body.message;
 
     if (!message) {
@@ -55,9 +209,8 @@ app.post('/api/chat', async (c) => {
   }
 });
 
-// Get stats - GET /api/stats
 app.get('/api/stats', async (c) => {
-  const userId = c.req.query('userId') || 'default';
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
   const agent = getAgent(c.env, userId);
   
   const response = await agent.fetch(new Request('http://agent/stats'));
@@ -65,9 +218,8 @@ app.get('/api/stats', async (c) => {
   return c.json(data);
 });
 
-// Get chat history - GET /api/history
 app.get('/api/history', async (c) => {
-  const userId = c.req.query('userId') || 'default';
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
   const agent = getAgent(c.env, userId);
   
   const response = await agent.fetch(new Request('http://agent/history'));
@@ -75,134 +227,24 @@ app.get('/api/history', async (c) => {
   return c.json(data);
 });
 
-// WebSocket upgrade for real-time chat
-app.get('/api/ws', async (c) => {
-  const upgradeHeader = c.req.header('Upgrade');
-  if (upgradeHeader !== 'websocket') {
-    return c.text('Expected WebSocket', 400);
-  }
-
-  const userId = c.req.query('userId') || 'default';
-  const agent = getAgent(c.env, userId);
-  
-  return agent.fetch(c.req.raw);
-});
-
-// Serve static files (frontend) - catch-all
 app.get('*', async (c) => {
-  // In production, static files are served from the site bucket
-  // This is a fallback for the root
   return c.html(`
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>GrindMate - DSA Practice Companion</title>
+      <title>GrindMate</title>
       <script src="https://cdn.tailwindcss.com"></script>
-      <style>
-        .chat-container { height: calc(100vh - 200px); }
-        .message-user { background: #3b82f6; color: white; }
-        .message-assistant { background: #f3f4f6; color: #1f2937; }
-      </style>
     </head>
-    <body class="bg-gray-900 text-white">
-      <div class="max-w-2xl mx-auto p-4">
-        <header class="text-center py-6">
-          <h1 class="text-3xl font-bold text-blue-400">🎯 GrindMate</h1>
-          <p class="text-gray-400 mt-2">Your AI DSA Practice Companion</p>
-        </header>
-
-        <div class="bg-gray-800 rounded-lg shadow-xl">
-          <!-- Chat Messages -->
-          <div id="chat" class="chat-container overflow-y-auto p-4 space-y-4">
-            <div class="message-assistant rounded-lg p-3 max-w-[80%]">
-              <p>👋 Hey! I'm GrindMate, your DSA grinding companion.</p>
-              <p class="mt-2">Try:</p>
-              <ul class="list-disc list-inside mt-1 text-sm">
-                <li>"Solved LC 121 Best Time to Buy Stock, easy, 15 min"</li>
-                <li>"What should I practice today?"</li>
-                <li>"Show my stats"</li>
-                <li>"Weekly summary"</li>
-              </ul>
-            </div>
-          </div>
-
-          <!-- Input -->
-          <div class="border-t border-gray-700 p-4">
-            <form id="chatForm" class="flex gap-2">
-              <input 
-                type="text" 
-                id="messageInput"
-                placeholder="Log a problem or ask for help..."
-                class="flex-1 bg-gray-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autocomplete="off"
-              >
-              <button 
-                type="submit"
-                class="bg-blue-500 hover:bg-blue-600 px-6 py-2 rounded-lg font-medium transition"
-              >
-                Send
-              </button>
-            </form>
-          </div>
-        </div>
-
-        <footer class="text-center text-gray-500 text-sm mt-4">
-          Built on Cloudflare Workers + Workers AI (Llama 3.3)
-        </footer>
+    <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+      <div class="text-center">
+        <h1 class="text-4xl font-bold mb-4">GrindMate API</h1>
+        <p class="text-gray-400 mb-8">Use the frontend at localhost:5173</p>
+        <a href="http://localhost:5173" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg">
+          Go to App
+        </a>
       </div>
-
-      <script>
-        const chat = document.getElementById('chat');
-        const form = document.getElementById('chatForm');
-        const input = document.getElementById('messageInput');
-
-        function addMessage(content, role) {
-          const div = document.createElement('div');
-          div.className = \`\${role === 'user' ? 'message-user ml-auto' : 'message-assistant'} rounded-lg p-3 max-w-[80%]\`;
-          div.innerHTML = content.replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>').replace(/\\n/g, '<br>');
-          chat.appendChild(div);
-          chat.scrollTop = chat.scrollHeight;
-        }
-
-        form.addEventListener('submit', async (e) => {
-          e.preventDefault();
-          const message = input.value.trim();
-          if (!message) return;
-
-          addMessage(message, 'user');
-          input.value = '';
-          input.disabled = true;
-
-          try {
-            const res = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message })
-            });
-            const data = await res.json();
-            addMessage(data.response || data.error || 'No response', 'assistant');
-          } catch (err) {
-            addMessage('Error: Could not connect to server', 'assistant');
-          }
-
-          input.disabled = false;
-          input.focus();
-        });
-
-        // Load chat history on page load
-        fetch('/api/history')
-          .then(res => res.json())
-          .then(data => {
-            if (data.messages && data.messages.length > 0) {
-              // Clear welcome message if there's history
-              chat.innerHTML = '';
-              data.messages.forEach(msg => addMessage(msg.content, msg.role));
-            }
-          })
-          .catch(() => {});
-      </script>
     </body>
     </html>
   `);

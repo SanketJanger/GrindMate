@@ -1,5 +1,3 @@
-// GrindMate Types
-
 export interface Problem {
   id?: number;
   leetcode_id?: number;
@@ -52,7 +50,6 @@ export interface AgentState {
   lastUpdated: string;
 }
 
-// LLM Response types
 export interface ParsedProblem {
   leetcode_id?: number;
   title: string;
@@ -70,10 +67,15 @@ export interface Recommendation {
   reason: string;
 }
 
-// Cloudflare bindings
 export interface Env {
   AI: Ai;
   DB: D1Database;
   GRINDMATE_AGENT: DurableObjectNamespace;
   ENVIRONMENT: string;
+}
+
+export interface AuthEnv extends Env {
+  GITHUB_CLIENT_ID: string;
+  GITHUB_CLIENT_SECRET: string;
+  SESSION_SECRET: string;
 }

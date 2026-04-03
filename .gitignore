@@ -7,6 +7,10 @@ node_modules/
 
 # Build output
 dist/
+frontend/dist/
+
+# Local media
+screenshot/
 
 # Local database
 .wrangler/state/

@@ -22,10 +22,12 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["GrindMateAgent"]
 
-# Static assets (frontend)
-[site]
-bucket = "./public"
+# Serve React frontend from the same origin as the worker
+[assets]
+directory = "./frontend/dist"
+run_worker_first = false
 
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
+FRONTEND_URL = "https://grindmate.sanketjanger15.workers.dev"
