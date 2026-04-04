@@ -95,8 +95,10 @@ export function getCookie(request: Request, name: string): string | null {
   return match ? match[1] : null;
 }
 
-export function setCookie(name: string, value: string, maxAge: number = 604800): string {
-  return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+export function setCookie(name: string, value: string, maxAge: number = 604800, secure: boolean = false): string {
+  const sameSite = secure ? 'None' : 'Lax';
+  const secureFlag = secure ? '; Secure' : '';
+  return `${name}=${value}; Path=/; HttpOnly; SameSite=${sameSite}${secureFlag}; Max-Age=${maxAge}`;
 }
 
 export function clearCookie(name: string): string {

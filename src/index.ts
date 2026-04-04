@@ -36,9 +36,14 @@ app.use('*', cors({
 }));
 
 function getCurrentUser(request: Request, secret: string): string | null {
+  const cookieHeader = request.headers.get('Cookie');
+  console.log('[auth] Cookie header present:', !!cookieHeader);
   const token = getCookie(request, 'session');
+  console.log('[auth] Session token found:', !!token);
   if (!token) return null;
-  return verifySessionToken(token, secret);
+  const userId = verifySessionToken(token, secret);
+  console.log('[auth] Verified userId:', userId ?? 'null (token invalid or expired)');
+  return userId;
 }
 
 app.get('/health', (c) => {
@@ -80,14 +85,19 @@ app.get('/auth/callback', async (c) => {
     return c.text('Failed to get user', 400);
   }
 
+  console.log('[auth/callback] GitHub username:', user.login);
   const sessionToken = createSessionToken(user.login, c.env.SESSION_SECRET);
+  console.log('[auth/callback] Session token created for:', user.login);
+
   const frontendUrl = c.env.FRONTEND_URL || 'http://localhost:5173';
+  const isSecure = frontendUrl.startsWith('https://');
+  console.log('[auth/callback] Setting cookie secure:', isSecure, '| SameSite:', isSecure ? 'None' : 'Lax');
 
   return new Response(null, {
     status: 302,
     headers: {
       Location: frontendUrl,
-      'Set-Cookie': setCookie('session', sessionToken),
+      'Set-Cookie': setCookie('session', sessionToken, 604800, isSecure),
     },
   });
 });
@@ -103,7 +113,7 @@ app.get('/auth/logout', (c) => {
   });
 });
 
-function getAgent(env: AuthEnv, userId: string = 'default'): DurableObjectStub {
+function getAgent(env: AuthEnv, userId: string): DurableObjectStub {
   const id = env.GRINDMATE_AGENT.idFromName(userId);
   return env.GRINDMATE_AGENT.get(id);
 }
@@ -185,7 +195,10 @@ app.post('/api/leetcode/import', async (c) => {
 
 app.post('/api/chat', async (c) => {
   try {
-    const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
+    const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+    if (!userId) {
+      return c.json({ error: 'Not authenticated' }, 401);
+    }
     const body = await c.req.json();
     const message = body.message;
 
@@ -210,7 +223,10 @@ app.post('/api/chat', async (c) => {
 });
 
 app.get('/api/stats', async (c) => {
-  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
   const agent = getAgent(c.env, userId);
   
   const response = await agent.fetch(new Request('http://agent/stats'));
@@ -219,7 +235,10 @@ app.get('/api/stats', async (c) => {
 });
 
 app.get('/api/history', async (c) => {
-  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET) || 'default';
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
   const agent = getAgent(c.env, userId);
   
   const response = await agent.fetch(new Request('http://agent/history'));

@@ -14,15 +14,34 @@ GrindMate is a full-stack app that runs entirely on Cloudflare's edge. You log p
 React Frontend → Cloudflare Worker (Hono) → Durable Object → D1 + Workers AI
 ```
 
-**Frontend** is React + Vite + Tailwind, built and served from the Worker. Three pages: Dashboard (charts and stats), Chat (AI interface), and Import (coming soon). The sidebar navigation lets you switch between views. All styling uses Tailwind v4 with a dark theme.
+**Frontend** is React + Vite + Tailwind, served directly from the Worker. Three pages: Dashboard (charts and stats), Chat (AI interface), and Import (coming soon). The sidebar lets you switch views. Dark theme throughout.
 
 **Worker** (`src/index.ts`) is a Hono router handling API routes and GitHub OAuth. It's the entry point for every request. Auth routes redirect to GitHub, exchange codes for tokens, and set session cookies. API routes proxy to the Durable Object for the logged-in user.
 
 **Durable Object** (`src/agent.ts`) is the interesting part. Each user gets their own DO instance, identified by their GitHub username. The DO holds chat history, review queue, and handles all the logic — logging problems, calculating streaks, scheduling spaced repetition reviews. State persists across requests without a database call.
 
-**D1** is Cloudflare's SQLite-at-the-edge. Three tables: `problems` (what you solved), `daily_activity` (for streak calculation), and `pattern_progress` (mastery tracking). The DO writes here for persistent data that needs querying.
+**D1** is Cloudflare's SQLite-at-the-edge. Three tables: `problems` (what you solved), `daily_activity` (for streak calculation), and `pattern_progress` (mastery tracking).
 
-**Workers AI** runs Llama 3.3 70B for three tasks: intent detection (what does the user want?), problem parsing (extract title, difficulty, patterns from natural language), and recommendations (what should you practice next based on your gaps?).
+**Workers AI** runs Llama 3.3 70B for three tasks: intent detection (what does the user want?), problem parsing (extract title, difficulty, patterns from natural language), and recommendations (what to practice next based on your gaps).
+
+---
+
+## Architecture
+
+![Architecture](screenshots/architecture.png)
+
+---
+
+## Features
+
+- **Natural Language Logging** — "Solved LC 121 Two Sum, easy, 15 min, struggled"
+- **Pattern Tracking** — Auto-categorizes into 20+ patterns (DP, sliding window, graphs, etc.)
+- **Smart Recommendations** — AI suggests problems based on weak areas
+- **Streak Tracking** — Daily streaks with longest-streak records
+- **Weekly Summaries** — Review progress and identify trends
+- **Spaced Repetition** — Struggled problems scheduled for review at 1, 3, and 7 days
+- **GitHub OAuth** — Secure login, per-user isolated data
+- **Dashboard** — Pie charts, bar charts, weak pattern alerts
 
 ---
 
@@ -38,19 +57,19 @@ Hono is built for edge runtimes. It's 14kb, TypeScript-first, and the API is nea
 
 **Why GitHub OAuth instead of email/password?**
 
-No password storage, no email verification, no "forgot password" flow. GitHub is the right choice for a dev tool — everyone already has an account. The OAuth flow is standard: redirect to GitHub → user approves → callback with code → exchange for token → fetch user info → create session.
+No password storage, no email verification, no "forgot password" flow. GitHub is the right choice for a dev tool — everyone already has an account.
 
-**Single-table vs multi-table for events?**
+**Single-table vs multi-table?**
 
-I use separate tables (`problems`, `daily_activity`, `pattern_progress`) rather than one events table. Reason: the queries are different. Problems need filtering by difficulty and patterns. Daily activity needs date-based aggregation for streaks. Pattern progress needs simple increment/lookup. Separate tables = simpler queries.
+I use separate tables (`problems`, `daily_activity`, `pattern_progress`) rather than one events table. The queries are different — problems need filtering by difficulty, daily activity needs date aggregation, pattern progress needs simple lookups. Separate tables = simpler queries.
 
 ---
 
 ## What the AI does
 
-The AI isn't a chatbot that answers random questions. It's a structured agent with specific capabilities:
+The AI isn't a generic chatbot. It's a structured agent with specific capabilities:
 
-**Intent detection** classifies every message into one of six buckets:
+**Intent detection** classifies every message:
 - `LOG_PROBLEM` — "solved two sum easy"
 - `GET_STATS` — "how am I doing"
 - `GET_RECOMMENDATION` — "what should I practice"
@@ -58,7 +77,7 @@ The AI isn't a chatbot that answers random questions. It's a structured agent wi
 - `GET_REVIEWS` — "what's due for review"
 - `GENERAL` — anything else
 
-**Problem parsing** extracts structured data from natural language:
+**Problem parsing** extracts structured data:
 ```
 Input:  "finished LC 42 trapping rain water hard 45 min struggled"
 Output: {
@@ -71,13 +90,13 @@ Output: {
 }
 ```
 
-**Recommendations** look at your pattern progress and recent solves to suggest what's next. If you haven't touched dynamic programming in two weeks and your last three solves were all arrays, it'll push you toward DP.
+**Recommendations** analyze your pattern progress and recent solves. If you haven't touched DP in two weeks, it'll push you toward DP problems.
 
 ---
 
 ## Spaced repetition
 
-When you log a problem with "struggled", the system schedules three reviews using the Leitner system intervals:
+When you log a problem with "struggled", the system schedules reviews using Leitner intervals:
 
 ```
 Day 0: Solve problem, mark struggled
@@ -86,11 +105,26 @@ Day 3: Second review scheduled
 Day 7: Third review scheduled
 ```
 
-This uses Durable Object alarms — `this.state.storage.setAlarm(timestamp)` schedules the DO to wake up at that time. When the alarm fires, the `alarm()` method runs and marks reviews as due. The dashboard shows a "Reviews Due" count, and you can ask "show my reviews" in chat.
+This uses Durable Object alarms — `this.state.storage.setAlarm(timestamp)` schedules the DO to wake up. The dashboard shows "Reviews Due" count.
 
 ---
 
-## The schema
+## Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Runtime** | Cloudflare Workers |
+| **State** | Durable Objects |
+| **Database** | D1 (SQLite) |
+| **AI** | Workers AI (Llama 3.3 70B) |
+| **Router** | Hono |
+| **Frontend** | React 19 + Vite + Tailwind CSS |
+| **Charts** | Recharts |
+| **Auth** | GitHub OAuth |
+
+---
+
+## Database Schema
 
 ```sql
 -- What you've solved
@@ -107,7 +141,7 @@ CREATE TABLE problems (
 
 -- For streak calculation
 CREATE TABLE daily_activity (
-    date TEXT PRIMARY KEY,   -- "2024-03-15"
+    date TEXT PRIMARY KEY,
     problems_solved INTEGER DEFAULT 0,
     total_time_min INTEGER DEFAULT 0
 );
@@ -120,60 +154,88 @@ CREATE TABLE pattern_progress (
 );
 ```
 
-The `patterns` field stores a JSON array. I considered a separate `problem_patterns` junction table but decided against it — the query "show me all problems with two_pointers pattern" is rare, and JSON extraction in SQLite handles it fine when needed.
-
 ---
 
 ## What I learned building this
 
-**Durable Objects are underrated.** The mental model is weird at first — it's not a database, not a cache, not a server. It's a stateful actor that lives at the edge. Once it clicks, you realize it solves a whole class of problems (per-user state, WebSockets, rate limiting) without spinning up Redis or managing connections.
+**Durable Objects are underrated.** The mental model is weird at first — it's not a database, not a cache, not a server. It's a stateful actor that lives at the edge. Once it clicks, you realize it solves a whole class of problems (per-user state, WebSockets, rate limiting) without spinning up Redis.
 
-**Tailwind v4 changed the setup.** The old `@tailwind base; @tailwind components; @tailwind utilities;` syntax doesn't work anymore. Now it's `@import "tailwindcss";` with the Vite plugin. Spent an hour debugging white screens before figuring this out.
+**Tailwind v4 changed the setup.** The old `@tailwind base; @tailwind components; @tailwind utilities;` doesn't work. Now it's `@import "tailwindcss";` with the Vite plugin. Spent an hour debugging white screens.
 
-**LeetCode blocks cloud IPs.** I built a full LeetCode import feature — fetch profile, get recent submissions, extract patterns. Works perfectly from localhost. Completely blocked from Cloudflare Workers. LeetCode's API returns 403 for any request from cloud provider IP ranges. The feature is there but disabled; a Chrome extension is the workaround.
+**LeetCode blocks cloud IPs.** Built a full import feature — works from localhost, blocked from Cloudflare Workers. LeetCode returns 403 for cloud provider IPs. Chrome extension is the workaround.
 
-**OAuth callback URLs matter.** In development you use `localhost:8787/auth/callback`. In production it's `grindmate.sanketjanger15.workers.dev/auth/callback`. Forget to update the GitHub OAuth app settings and you get a cryptic "redirect_uri mismatch" error.
+**OAuth callback URLs matter.** Development uses `localhost:8787/auth/callback`. Production uses your workers.dev domain. Forget to update GitHub OAuth settings = cryptic "redirect_uri mismatch" error.
 
-**Secrets in local dev need `.dev.vars`.** Wrangler's `wrangler secret put` only works for deployed Workers. Locally, you need a `.dev.vars` file with `KEY=value` pairs. Not in the docs prominently enough.
+**Secrets need `.dev.vars` locally.** `wrangler secret put` only works for deployed Workers. Locally, you need a `.dev.vars` file.
 
 ---
 
-## Running it yourself
+## Quick Start
 
-You'll need a Cloudflare account (free tier works) and a GitHub OAuth app.
+### Prerequisites
+
+- Node.js 18+
+- Cloudflare account (free tier works)
+- Wrangler CLI: `npm install -g wrangler`
+- GitHub OAuth App ([create one](https://github.com/settings/developers))
+
+### 1. Clone & Install
 
 ```bash
 git clone https://github.com/SanketJanger/GrindMate.git
 cd GrindMate
-
-# Install dependencies
 npm install
 cd frontend && npm install && cd ..
+```
 
-# Create D1 database
-npx wrangler d1 create grindmate-db
-# Copy the database_id into wrangler.toml
+### 2. Create D1 Database
 
-# Run migrations
+```bash
+wrangler d1 create grindmate-db
+```
+
+Copy the `database_id` into `wrangler.toml`.
+
+### 3. Set Secrets
+
+```bash
+wrangler secret put GITHUB_CLIENT_ID
+wrangler secret put GITHUB_CLIENT_SECRET
+wrangler secret put SESSION_SECRET   # any random string
+```
+
+For local dev, create `.dev.vars`:
+```
+GITHUB_CLIENT_ID=your_id
+GITHUB_CLIENT_SECRET=your_secret
+SESSION_SECRET=any_random_string
+```
+
+### 4. Run Migrations
+
+```bash
+# Local
 npx wrangler d1 execute grindmate-db --local --file=./schema.sql
 
-# Create .dev.vars with your GitHub OAuth credentials
-echo "GITHUB_CLIENT_ID=your_client_id" > .dev.vars
-echo "GITHUB_CLIENT_SECRET=your_client_secret" >> .dev.vars
-echo "SESSION_SECRET=any_random_string" >> .dev.vars
+# Production
+npx wrangler d1 execute grindmate-db --remote --file=./schema.sql
+```
 
-# Start backend
+### 5. Local Development
+
+```bash
+# Terminal 1 — Backend
 npx wrangler dev --remote
 
-# In another terminal, start frontend
+# Terminal 2 — Frontend
 cd frontend && npm run dev
 ```
 
-Open `localhost:5173`. Login with GitHub. Log a problem. Watch the charts update.
+Open `localhost:5173`.
 
 ---
 
-## Deploying
+## Deployment
 
 ```bash
 # Build frontend
@@ -184,7 +246,39 @@ cp -r dist/* ../public/
 cd .. && npx wrangler deploy
 ```
 
-Update your GitHub OAuth app's callback URL to your production domain.
+Update your GitHub OAuth callback URL to:
+```
+https://grindmate.<YOUR_SUBDOMAIN>.workers.dev/auth/callback
+```
+
+---
+
+## Usage Examples
+
+**Log a problem:**
+```
+Solved LC 121 Best Time to Buy Stock, easy, 15 min
+Just finished Two Sum — struggled, medium, 40 min
+Completed LC 42 Trapping Rain Water, hard
+```
+
+**Get recommendations:**
+```
+What should I practice today?
+What patterns am I weak at?
+```
+
+**View stats:**
+```
+Show my stats
+How am I doing?
+```
+
+**Weekly summary:**
+```
+Weekly summary
+How was my week?
+```
 
 ---
 
@@ -198,8 +292,30 @@ Update your GitHub OAuth app's callback URL to your production domain.
 
 ---
 
-## Stack
+## Patterns Tracked
 
-TypeScript · React · Vite · Tailwind CSS · Recharts · Hono · Cloudflare Workers · Durable Objects · D1 (SQLite) · Workers AI (Llama 3.3) · GitHub OAuth
+Arrays · Strings · Two Pointers · Sliding Window · Hash Map · Stack · Queue · Linked List · Binary Search · Sorting · Heap · Trees · Graphs · BFS · DFS · Dynamic Programming · Greedy · Backtracking · Bit Manipulation · Math
 
 ---
+
+## Roadmap
+
+- [x] Natural language problem logging
+- [x] Pattern extraction with AI
+- [x] Spaced repetition scheduling
+- [x] GitHub OAuth + per-user isolation
+- [x] React dashboard with charts
+- [ ] Chrome extension for LeetCode auto-import
+- [ ] Email/push reminders for due reviews
+
+---
+
+## Acknowledgments
+
+- [Cloudflare Workers](https://workers.cloudflare.com/) — Serverless compute at the edge
+- [Workers AI](https://developers.cloudflare.com/workers-ai/) — Llama 3.3 70B inference
+- [Hono](https://hono.dev/) — Lightweight web framework
+
+---
+
+*Built by [Sanket Janger]
