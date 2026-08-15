@@ -1,5 +1,6 @@
 import { Env, Problem, UserStats, PatternProgress, ChatMessage } from './types';
 import { chat, parseProblem, detectIntent, getRecommendations, getWeeklySummary } from './ai';
+import { matchNeetCodeProblem, NEETCODE_150 } from './neetcode';
 
 interface ReviewItem {
   problemId: number;
@@ -57,6 +58,10 @@ export class GrindMateAgent {
 
     if (url.pathname === '/stats' && request.method === 'GET') {
       return this.handleGetStats();
+    }
+
+    if (url.pathname === '/neetcode/progress' && request.method === 'GET') {
+      return this.handleGetNeetCodeProgress();
     }
 
     if (url.pathname === '/history' && request.method === 'GET') {
@@ -140,14 +145,24 @@ export class GrindMateAgent {
         timestamp?: string;
       };
 
-      const solvedAt = timestamp 
+      const solvedAt = timestamp
         ? new Date(parseInt(timestamp) * 1000).toISOString()
         : new Date().toISOString();
 
+      const neetcodeMatch = matchNeetCodeProblem(null, title);
+
       await this.env.DB.prepare(`
-        INSERT INTO problems (title, difficulty, patterns, solved_at)
-        VALUES (?, ?, ?, ?)
-      `).bind(title, difficulty, JSON.stringify(patterns), solvedAt).run();
+        INSERT INTO problems (leetcode_id, title, difficulty, patterns, solved_at, neetcode, neetcode_category)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        neetcodeMatch?.leetcode_id ?? null,
+        title,
+        difficulty,
+        JSON.stringify(patterns),
+        solvedAt,
+        neetcodeMatch ? 1 : 0,
+        neetcodeMatch?.category ?? null
+      ).run();
 
       const solvedDate = solvedAt.split('T')[0];
       await this.env.DB.prepare(`
@@ -238,19 +253,25 @@ export class GrindMateAgent {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    
+    const neetcodeMatch = matchNeetCodeProblem(parsed.leetcode_id, parsed.title);
+    // Backfill the canonical leetcode_id when the parser couldn't extract one,
+    // so NeetCode progress can dedupe reliably by id.
+    const leetcodeId = parsed.leetcode_id ?? neetcodeMatch?.leetcode_id ?? null;
+
     try {
       const result = await this.env.DB.prepare(`
-        INSERT INTO problems (leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at)
-        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        INSERT INTO problems (leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
         RETURNING id
       `).bind(
-        parsed.leetcode_id,
+        leetcodeId,
         parsed.title,
         parsed.difficulty,
         JSON.stringify(parsed.patterns),
         parsed.time_spent_min,
-        parsed.struggled ? 1 : 0
+        parsed.struggled ? 1 : 0,
+        neetcodeMatch ? 1 : 0,
+        neetcodeMatch?.category ?? null
       ).first() as { id: number } | null;
 
       await this.env.DB.prepare(`
@@ -282,6 +303,10 @@ export class GrindMateAgent {
       let response = `✅ Logged: **${parsed.title}** (${parsed.difficulty})${timeStr}\n`;
       response += `📊 Patterns: ${patternStr}\n`;
       response += `🔥 Streak: ${stats.current_streak} days | Total: ${stats.total_problems} problems`;
+
+      if (neetcodeMatch) {
+        response += `\n🎯 NeetCode 150: ${neetcodeMatch.category}`;
+      }
       
       if (parsed.struggled) {
         response += `\n\n📚 I've scheduled review reminders for this problem (1, 3, and 7 days).`;
@@ -411,6 +436,40 @@ export class GrindMateAgent {
       ...stats,
       reviews_due: dueReviews.length,
       reviews_upcoming: this.reviewQueue.length - dueReviews.length,
+    });
+  }
+
+  private async handleGetNeetCodeProgress(): Promise<Response> {
+    const categoryTotals = new Map<string, number>();
+    for (const p of NEETCODE_150) {
+      categoryTotals.set(p.category, (categoryTotals.get(p.category) || 0) + 1);
+    }
+
+    const solvedByCategory = await this.env.DB.prepare(`
+      SELECT neetcode_category as category, COUNT(DISTINCT leetcode_id) as solved
+      FROM problems
+      WHERE neetcode = 1 AND neetcode_category IS NOT NULL
+      GROUP BY neetcode_category
+    `).all();
+
+    const solvedMap = new Map<string, number>(
+      (solvedByCategory.results || []).map((row: any) => [row.category, row.solved])
+    );
+
+    const categories = Array.from(categoryTotals.entries())
+      .map(([category, total]) => {
+        const solved = Math.min(solvedMap.get(category) || 0, total);
+        const status = solved === 0 ? 'not_started' : solved >= total ? 'complete' : 'in_progress';
+        return { category, solved, total, status };
+      })
+      .sort((a, b) => b.solved / b.total - a.solved / a.total || a.category.localeCompare(b.category));
+
+    const totalSolved = categories.reduce((sum, c) => sum + c.solved, 0);
+
+    return Response.json({
+      total: NEETCODE_150.length,
+      solved: totalSolved,
+      categories,
     });
   }
 

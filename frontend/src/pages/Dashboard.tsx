@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { MessageSquare, Target, Flame, TrendingUp, BookOpen } from 'lucide-react'
+import { MessageSquare, Target, Flame, TrendingUp, BookOpen, CheckCircle2, CircleDot, Circle } from 'lucide-react'
 
 interface Stats {
   total_problems: number
@@ -14,14 +14,29 @@ interface Stats {
   reviews_upcoming?: number
 }
 
+interface NeetCodeCategoryProgress {
+  category: string
+  solved: number
+  total: number
+  status: 'complete' | 'in_progress' | 'not_started'
+}
+
+interface NeetCodeProgress {
+  total: number
+  solved: number
+  categories: NeetCodeCategoryProgress[]
+}
+
 const COLORS = ['#22c55e', '#eab308', '#ef4444']
 
 export default function Dashboard() {
   const [stats, setStats] = useState<Stats | null>(null)
+  const [neetcode, setNeetcode] = useState<NeetCodeProgress | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchStats()
+    fetchNeetCodeProgress()
   }, [])
 
   const fetchStats = async () => {
@@ -33,6 +48,16 @@ export default function Dashboard() {
       console.error('Failed to fetch stats:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchNeetCodeProgress = async () => {
+    try {
+      const res = await fetch('/api/neetcode/progress')
+      const data = await res.json()
+      setNeetcode(data)
+    } catch (err) {
+      console.error('Failed to fetch NeetCode progress:', err)
     }
   }
 
@@ -149,6 +174,31 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* NeetCode 150 Progress */}
+        {neetcode && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
+              <span className="text-gray-400 text-sm">
+                {neetcode.solved}/{neetcode.total} solved
+              </span>
+            </div>
+
+            <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
+              <div
+                className="h-full bg-blue-500 rounded-full transition-all"
+                style={{ width: `${neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0}%` }}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {neetcode.categories.map((cat) => (
+                <NeetCodeCategoryCard key={cat.category} category={cat} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Weak Areas */}
         {stats?.weak_patterns && stats.weak_patterns.length > 0 && (
           <div className="bg-gray-800 rounded-lg p-6">
@@ -170,7 +220,60 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ 
+const NEETCODE_STATUS_CONFIG = {
+  complete: {
+    icon: CheckCircle2,
+    label: 'Complete',
+    iconClass: 'text-green-400',
+    barClass: 'bg-green-500',
+    badgeClass: 'bg-green-500/20 text-green-400',
+  },
+  in_progress: {
+    icon: CircleDot,
+    label: 'In Progress',
+    iconClass: 'text-blue-400',
+    barClass: 'bg-blue-500',
+    badgeClass: 'bg-blue-500/20 text-blue-400',
+  },
+  not_started: {
+    icon: Circle,
+    label: 'Not Started',
+    iconClass: 'text-gray-500',
+    barClass: 'bg-gray-600',
+    badgeClass: 'bg-gray-700 text-gray-400',
+  },
+} as const
+
+function NeetCodeCategoryCard({ category }: { category: NeetCodeCategoryProgress }) {
+  const config = NEETCODE_STATUS_CONFIG[category.status]
+  const Icon = config.icon
+  const percent = category.total > 0 ? (category.solved / category.total) * 100 : 0
+
+  return (
+    <div className="bg-gray-900/50 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${config.iconClass}`} />
+          <span className="text-sm font-medium truncate">{category.category}</span>
+        </div>
+        <span className="text-xs text-gray-400 shrink-0 ml-2">
+          {category.solved}/{category.total}
+        </span>
+      </div>
+      <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden mb-2">
+        <div
+          className={`h-full rounded-full transition-all ${config.barClass}`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${config.badgeClass}`}>
+        {config.label}
+      </span>
+    </div>
+  )
+}
+
+function StatCard({
   icon, 
   label, 
   value, 

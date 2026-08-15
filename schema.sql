@@ -7,8 +7,10 @@ CREATE TABLE IF NOT EXISTS problems (
     difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')),
     patterns TEXT, 
     time_spent_min INTEGER,
-    struggled INTEGER DEFAULT 0, 
+    struggled INTEGER DEFAULT 0,
     notes TEXT,
+    neetcode INTEGER DEFAULT 0,
+    neetcode_category TEXT,
     solved_at TEXT DEFAULT (datetime('now')),
     created_at TEXT DEFAULT (datetime('now'))
 );

@@ -234,6 +234,18 @@ app.get('/api/stats', async (c) => {
   return c.json(data);
 });
 
+app.get('/api/neetcode/progress', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const agent = getAgent(c.env, userId);
+
+  const response = await agent.fetch(new Request('http://agent/neetcode/progress'));
+  const data = await response.json();
+  return c.json(data);
+});
+
 app.get('/api/history', async (c) => {
   const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
   if (!userId) {
