@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS problems (
     notes TEXT,
     neetcode INTEGER DEFAULT 0,
     neetcode_category TEXT,
+    re_attempt BOOLEAN DEFAULT FALSE,
     solved_at TEXT DEFAULT (datetime('now')),
     created_at TEXT DEFAULT (datetime('now'))
 );

@@ -124,10 +124,11 @@ export async function detectIntent(env: Env, message: string): Promise<string> {
 Message: "${message}"
 
 Categories:
-- LOG_PROBLEM: User is logging a solved problem (mentions solving, completed, finished, done with a problem)
+- LOG_PROBLEM: User is logging a solved problem (mentions solving, completed, finished, done with a problem), OR telling you they finished reviewing a problem they logged earlier (mentions "reviewed", "done with the review of", "done reviewing")
 - GET_STATS: User wants to see their progress/stats
 - GET_RECOMMENDATION: User asks what to practice next
 - GET_WEEKLY_SUMMARY: User asks for weekly summary/report
+- GET_REVIEWS: User asks what's due for review, or about spaced repetition reviews (e.g. "show my reviews", "what do I need to review")
 - GENERAL_CHAT: Everything else
 
 Return ONLY the category name, nothing else.`;
@@ -141,8 +142,8 @@ Return ONLY the category name, nothing else.`;
   });
 
   const text = ((response as any).response || 'GENERAL_CHAT').trim().toUpperCase();
-  
+
   // Validate response
-  const validIntents = ['LOG_PROBLEM', 'GET_STATS', 'GET_RECOMMENDATION', 'GET_WEEKLY_SUMMARY', 'GENERAL_CHAT'];
+  const validIntents = ['LOG_PROBLEM', 'GET_STATS', 'GET_RECOMMENDATION', 'GET_WEEKLY_SUMMARY', 'GET_REVIEWS', 'GENERAL_CHAT'];
   return validIntents.includes(text) ? text : 'GENERAL_CHAT';
 }

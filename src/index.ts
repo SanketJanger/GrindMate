@@ -271,6 +271,47 @@ app.get('/api/neetcode/progress', async (c) => {
   return c.json(data);
 });
 
+app.get('/api/needs-practice', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const agent = getAgent(c.env, userId);
+
+  const response = await agent.fetch(agentRequest('http://agent/needs-practice', userId));
+  const data = await response.json();
+  return c.json(data);
+});
+
+app.get('/api/reviews', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const agent = getAgent(c.env, userId);
+
+  const response = await agent.fetch(agentRequest('http://agent/reviews', userId));
+  const data = await response.json();
+  return c.json(data);
+});
+
+app.post('/api/reviews/complete', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const agent = getAgent(c.env, userId);
+
+  const body = await c.req.text();
+  const response = await agent.fetch(agentRequest('http://agent/reviews/complete', userId, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  }));
+  const data = await response.json();
+  return c.json(data, response.status as any);
+});
+
 app.get('/api/history', async (c) => {
   const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
   if (!userId) {

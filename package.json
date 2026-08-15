@@ -12,6 +12,8 @@
     "db:migrate:neetcode:prod": "wrangler d1 execute grindmate-db --remote --file=./migrations/0001_add_neetcode.sql",
     "db:migrate:userid:local": "wrangler d1 execute grindmate-db --local --file=./migrations/0002_add_user_id.sql",
     "db:migrate:userid:prod": "wrangler d1 execute grindmate-db --remote --file=./migrations/0002_add_user_id.sql",
+    "db:migrate:reattempt:local": "wrangler d1 execute grindmate-db --local --file=./migrations/0003_add_re_attempt.sql",
+    "db:migrate:reattempt:prod": "wrangler d1 execute grindmate-db --remote --file=./migrations/0003_add_re_attempt.sql",
     "tail": "wrangler tail"
   },
   "dependencies": {

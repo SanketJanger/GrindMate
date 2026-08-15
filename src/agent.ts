@@ -1,16 +1,59 @@
 import { Env, Problem, UserStats, PatternProgress, ChatMessage } from './types';
 import { chat, parseProblem, detectIntent, getRecommendations, getWeeklySummary } from './ai';
-import { matchNeetCodeProblem, NEETCODE_150 } from './neetcode';
+import { matchNeetCodeProblem, NEETCODE_150, PATTERN_TO_NEETCODE_CATEGORIES } from './neetcode';
 import { GUEST_USER_ID } from './auth';
 
 interface ReviewItem {
-  problemId: number;
+  id: string;
+  leetcode_id: number | null;
   title: string;
   difficulty: string;
   patterns: string[];
-  scheduledFor: number;
-  reviewNumber: number;
+  solved_on: string;      // date the problem was originally solved, YYYY-MM-DD
+  struggled: boolean;     // priority signal only — does not gate scheduling
+  review_number: number;  // 1, 2, or 3
+  scheduled_for: string;  // ISO datetime string of when this review is due
+  completed: boolean;
 }
+
+// Spaced-repetition intervals: review #1 is scheduled 1 day after solving;
+// #2 and #3 are each scheduled that many days after the *previous* review
+// is marked complete (see markReviewCompleted), not upfront.
+const REVIEW_INTERVAL_DAYS = [1, 3, 7];
+
+function normalizeForMatch(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// Recognizes chat phrasing like "reviewed two sum" or "done with two sum
+// review" so handleLogProblem can route it to review completion instead of
+// trying to parse it as a newly solved problem.
+function extractReviewCompletionTitle(message: string): string | null {
+  const patterns = [
+    /done (?:with|reviewing)\s+(.+?)(?:\s+review)?[.!]?$/i,
+    /finished (?:reviewing\s+)?(.+?)(?:\s+review)?[.!]?$/i,
+    /completed\s+(.+?)\s+review[.!]?$/i,
+    /reviewed\s+(.+?)[.!]?$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]?.trim()) {
+      return match[1].trim();
+    }
+  }
+  return null;
+}
+
+// Recognizes "re-attempt two sum" or "yes re-attempt two sum" so
+// handleLogProblem can route it to logReAttempt instead of the normal
+// AI-parsed log flow.
+function extractReAttemptTitle(message: string): string | null {
+  const match = message.match(/^(?:yes\s+)?re-?attempt(?:ed)?\s+(.+?)[.!]?$/i);
+  return match?.[1]?.trim() || null;
+}
+
+const GUEST_READONLY_MESSAGE = `🔒 This is a **read-only demo** — problem logging is disabled so the sample data stays intact for other visitors.\n\nLogin with GitHub to start tracking your own progress: your problems, streaks, and NeetCode 150 progress would be saved just like this demo data.`;
 
 interface GuestSeedProblem {
   leetcode_id: number;
@@ -91,16 +134,19 @@ export class GrindMateAgent {
     if (existing && existing.count > 0) return;
 
     const now = Date.now();
-    const struggledReviewTargets: { problemId: number; title: string; difficulty: string; patterns: string[] }[] = [];
+    // Every logged problem gets a review scheduled in the real flow, but for
+    // a demo account we only backdate a handful into "due now" — enough to
+    // show both priority tiers (struggled vs. not) without flooding the list.
+    const REVIEW_DEMO_TITLES = ['Palindrome Partitioning II', 'Word Break II', 'Two Sum'];
+    const reviewSeedTargets: { leetcode_id: number; title: string; difficulty: string; patterns: string[]; struggled: boolean; solvedOn: string }[] = [];
 
     for (const seed of GUEST_SEED_PROBLEMS) {
       const solvedAt = new Date(now - seed.daysAgo * 24 * 60 * 60 * 1000).toISOString();
       const solvedDate = solvedAt.split('T')[0];
 
-      const result = await this.env.DB.prepare(`
+      await this.env.DB.prepare(`
         INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        RETURNING id
       `).bind(
         GUEST_USER_ID,
         seed.leetcode_id,
@@ -112,7 +158,7 @@ export class GrindMateAgent {
         solvedAt,
         seed.neetcode ? 1 : 0,
         seed.neetcodeCategory
-      ).first() as { id: number } | null;
+      ).run();
 
       await this.env.DB.prepare(`
         INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
@@ -132,45 +178,106 @@ export class GrindMateAgent {
         `).bind(GUEST_USER_ID, pattern, solvedAt).run();
       }
 
-      if (seed.struggled && result?.id) {
-        struggledReviewTargets.push({
-          problemId: result.id,
+      if (REVIEW_DEMO_TITLES.includes(seed.title)) {
+        reviewSeedTargets.push({
+          leetcode_id: seed.leetcode_id,
           title: seed.title,
           difficulty: seed.difficulty,
           patterns: seed.patterns,
+          struggled: !!seed.struggled,
+          solvedOn: solvedDate,
         });
       }
     }
 
-    // Backdate 1-2 reviews into the past so they show up as already due,
-    // rather than scheduling them forward like a real struggled-problem log would.
-    const overdueOffsetsMs = [2 * 24 * 60 * 60 * 1000, 12 * 60 * 60 * 1000];
-    for (const [i, target] of struggledReviewTargets.entries()) {
+    // Backdate these into the past so they show up as already due, rather
+    // than scheduling them forward like a fresh log would. Mixing struggled
+    // and non-struggled demonstrates the priority ordering in the reviews list.
+    const overdueOffsetsMs = [2 * 24 * 60 * 60 * 1000, 18 * 60 * 60 * 1000, 6 * 60 * 60 * 1000];
+    for (const [i, target] of reviewSeedTargets.entries()) {
       this.reviewQueue.push({
-        problemId: target.problemId,
+        id: crypto.randomUUID(),
+        leetcode_id: target.leetcode_id,
         title: target.title,
         difficulty: target.difficulty,
         patterns: target.patterns,
-        scheduledFor: now - (overdueOffsetsMs[i] ?? 24 * 60 * 60 * 1000),
-        reviewNumber: 1,
+        solved_on: target.solvedOn,
+        struggled: target.struggled,
+        review_number: 1,
+        scheduled_for: new Date(now - (overdueOffsetsMs[i] ?? 24 * 60 * 60 * 1000)).toISOString(),
+        completed: false,
       });
     }
     await this.state.storage.put('reviewQueue', this.reviewQueue);
+    await this.scheduleNextAlarm();
   }
 
   async alarm(): Promise<void> {
-    const now = Date.now();
-    const dueReviews = this.reviewQueue.filter(r => r.scheduledFor <= now);
-    
-    if (dueReviews.length > 0) {
-      console.log(`${dueReviews.length} reviews are now due`);
+    const due = this.getDueReviews();
+    if (due.length > 0) {
+      console.log(`${due.length} review(s) are now due`);
     }
 
-    const futureReviews = this.reviewQueue.filter(r => r.scheduledFor > now);
-    if (futureReviews.length > 0) {
-      const nextReview = Math.min(...futureReviews.map(r => r.scheduledFor));
-      await this.state.storage.setAlarm(nextReview);
+    // Due-ness itself is always computed live from scheduled_for/completed
+    // (see getDueReviews) rather than mutated here, so it stays correct even
+    // if this alarm never fires before the user checks — the alarm only
+    // exists to keep waking the DO up for the next milestone.
+    await this.scheduleNextAlarm();
+  }
+
+  // "Due" is derived on demand, never cached: a review is due once its
+  // date has arrived and it hasn't been completed yet.
+  private getDueReviews(): ReviewItem[] {
+    const today = new Date().toISOString().split('T')[0];
+    return this.reviewQueue.filter(r => !r.completed && r.scheduled_for.split('T')[0] <= today);
+  }
+
+  // Points the DO alarm at the earliest not-yet-due pending review so the
+  // DO wakes up again for it. Reviews that are already due don't need an
+  // alarm — they're already discoverable via getDueReviews() — and pointing
+  // the alarm at one would just make it refire immediately forever.
+  private async scheduleNextAlarm(): Promise<void> {
+    const now = Date.now();
+    const upcoming = this.reviewQueue.filter(r => !r.completed && new Date(r.scheduled_for).getTime() > now);
+    if (upcoming.length === 0) return;
+
+    const next = Math.min(...upcoming.map(r => new Date(r.scheduled_for).getTime()));
+    await this.state.storage.setAlarm(next);
+  }
+
+  // Marks a review complete and, unless this was the 3rd and final review,
+  // schedules the next one in the chain now — review #1 done schedules #2
+  // in 3 days, #2 done schedules #3 in 7 days, #3 done means mastered.
+  private async markReviewCompleted(review: ReviewItem): Promise<ReviewItem | undefined> {
+    review.completed = true;
+
+    let nextReview = this.reviewQueue.find(r =>
+      !r.completed &&
+      r.title === review.title &&
+      r.leetcode_id === review.leetcode_id &&
+      r.review_number === review.review_number + 1
+    );
+
+    if (!nextReview && review.review_number < REVIEW_INTERVAL_DAYS.length) {
+      nextReview = {
+        id: crypto.randomUUID(),
+        leetcode_id: review.leetcode_id,
+        title: review.title,
+        difficulty: review.difficulty,
+        patterns: review.patterns,
+        solved_on: review.solved_on,
+        struggled: review.struggled,
+        review_number: review.review_number + 1,
+        scheduled_for: new Date(Date.now() + REVIEW_INTERVAL_DAYS[review.review_number] * 24 * 60 * 60 * 1000).toISOString(),
+        completed: false,
+      };
+      this.reviewQueue.push(nextReview);
     }
+
+    await this.state.storage.put('reviewQueue', this.reviewQueue);
+    await this.scheduleNextAlarm();
+
+    return nextReview;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -198,6 +305,10 @@ export class GrindMateAgent {
       return this.handleGetNeetCodeProgress();
     }
 
+    if (url.pathname === '/needs-practice' && request.method === 'GET') {
+      return this.handleGetNeedsPractice();
+    }
+
     if (url.pathname === '/history' && request.method === 'GET') {
       return this.handleGetHistory();
     }
@@ -217,54 +328,100 @@ export class GrindMateAgent {
     return new Response('Not Found', { status: 404 });
   }
 
-  private async scheduleReviews(problemId: number, title: string, difficulty: string, patterns: string[]): Promise<void> {
-    const now = Date.now();
-    
-    const intervals = [
-      1 * 24 * 60 * 60 * 1000,
-      3 * 24 * 60 * 60 * 1000,
-      7 * 24 * 60 * 60 * 1000,
-    ];
-
-    for (let i = 0; i < intervals.length; i++) {
-      this.reviewQueue.push({
-        problemId,
-        title,
-        difficulty,
-        patterns,
-        scheduledFor: now + intervals[i],
-        reviewNumber: i + 1,
-      });
-    }
+  // Schedules review #1 (1 day out) for a just-logged problem. Every logged
+  // problem gets this — struggled is stored for priority/sorting only, it
+  // no longer decides whether a review happens. #2 and #3 aren't created
+  // here; markReviewCompleted creates each one only once its predecessor
+  // is marked done.
+  private async scheduleReviews(problem: {
+    leetcode_id: number | null;
+    title: string;
+    difficulty: string;
+    patterns: string[];
+    struggled: boolean;
+    solvedAt: string;
+  }): Promise<void> {
+    this.reviewQueue.push({
+      id: crypto.randomUUID(),
+      leetcode_id: problem.leetcode_id,
+      title: problem.title,
+      difficulty: problem.difficulty,
+      patterns: problem.patterns,
+      solved_on: problem.solvedAt.split('T')[0],
+      struggled: problem.struggled,
+      review_number: 1,
+      scheduled_for: new Date(Date.now() + REVIEW_INTERVAL_DAYS[0] * 24 * 60 * 60 * 1000).toISOString(),
+      completed: false,
+    });
 
     await this.state.storage.put('reviewQueue', this.reviewQueue);
+    await this.scheduleNextAlarm();
+  }
 
-    const nextReview = now + intervals[0];
-    await this.state.storage.setAlarm(nextReview);
+  // Matches chat phrasing like "reviewed two sum" against the pending
+  // queue by normalized title and marks the earliest matching review done.
+  private async completeReviewByTitle(rawTitle: string): Promise<string> {
+    const normalized = normalizeForMatch(rawTitle);
+
+    const review = this.reviewQueue
+      .filter(r => !r.completed)
+      .filter(r => {
+        const candidate = normalizeForMatch(r.title);
+        return candidate === normalized || candidate.includes(normalized) || normalized.includes(candidate);
+      })
+      .sort((a, b) => a.review_number - b.review_number)[0];
+
+    if (!review) {
+      return `I couldn't find a pending review for "${rawTitle}". Say "show my reviews" to see what's due.`;
+    }
+
+    const reviewNumber = review.review_number;
+    const nextReview = await this.markReviewCompleted(review);
+
+    if (!nextReview) {
+      return `✅ **${review.title}** review #${reviewNumber} done!\n\n🎉 You've mastered this one — no more reviews needed.`;
+    }
+
+    const daysUntilNext = REVIEW_INTERVAL_DAYS[reviewNumber];
+    return `✅ **${review.title}** review #${reviewNumber} done!\nI'll remind you to review it again in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}.`;
   }
 
   private async handleGetReviews(): Promise<Response> {
-    const now = Date.now();
-    const dueReviews = this.reviewQueue.filter(r => r.scheduledFor <= now);
-    
+    const due = this.getDueReviews();
+    const pending = this.reviewQueue.filter(r => !r.completed);
+
     return Response.json({
-      due: dueReviews,
-      upcoming: this.reviewQueue.filter(r => r.scheduledFor > now).length,
-      total: this.reviewQueue.length,
+      due,
+      upcoming: pending.length - due.length,
+      total: pending.length,
     });
   }
 
   private async handleCompleteReview(request: Request): Promise<Response> {
-    try {
-      const { problemId, reviewNumber } = await request.json() as { problemId: number; reviewNumber: number };
-
-      this.reviewQueue = this.reviewQueue.filter(
-        r => !(r.problemId === problemId && r.reviewNumber === reviewNumber)
+    if (this.isGuest) {
+      return Response.json(
+        { error: 'Demo reviews are read-only. Login with GitHub to track your own reviews.' },
+        { status: 403 }
       );
-      
-      await this.state.storage.put('reviewQueue', this.reviewQueue);
-      
-      return Response.json({ success: true, remaining: this.reviewQueue.length });
+    }
+
+    try {
+      const { id } = await request.json() as { id: string };
+      const review = this.reviewQueue.find(r => r.id === id && !r.completed);
+
+      if (!review) {
+        return Response.json({ error: 'Review not found or already completed' }, { status: 404 });
+      }
+
+      const nextReview = await this.markReviewCompleted(review);
+
+      return Response.json({
+        success: true,
+        completed: { id: review.id, title: review.title, review_number: review.review_number },
+        next_review: nextReview
+          ? { id: nextReview.id, review_number: nextReview.review_number, scheduled_for: nextReview.scheduled_for }
+          : null,
+      });
     } catch (error) {
       return Response.json({ error: 'Failed to complete review' }, { status: 500 });
     }
@@ -391,9 +548,76 @@ export class GrindMateAgent {
     }
   }
 
+  // Logs a re-attempt of a problem the user already has on record, carrying
+  // forward its metadata (title/difficulty/patterns/leetcode_id) rather than
+  // re-parsing it — the trigger phrase has no such details to extract.
+  // Deliberately does not call scheduleReviews: the original review chain
+  // for this problem already exists.
+  private async logReAttempt(rawTitle: string): Promise<string> {
+    const normalized = normalizeForMatch(rawTitle);
+
+    const rows = await this.env.DB.prepare(`
+      SELECT leetcode_id, title, difficulty, patterns, neetcode, neetcode_category
+      FROM problems
+      WHERE user_id = ?
+      ORDER BY solved_at DESC
+    `).bind(this.userId).all();
+
+    const source = (rows.results || []).find((row: any) => {
+      const candidate = normalizeForMatch(row.title);
+      return candidate === normalized || candidate.includes(normalized) || normalized.includes(candidate);
+    }) as any;
+
+    if (!source) {
+      return `I don't see a previous log for "${rawTitle}" yet. Log it fresh first, then you can re-attempt it later!`;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    await this.env.DB.prepare(`
+      INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, struggled, solved_at, neetcode, neetcode_category, re_attempt)
+      VALUES (?, ?, ?, ?, ?, 0, datetime('now'), ?, ?, 1)
+    `).bind(
+      this.userId,
+      source.leetcode_id,
+      source.title,
+      source.difficulty,
+      source.patterns,
+      source.neetcode,
+      source.neetcode_category
+    ).run();
+
+    await this.env.DB.prepare(`
+      INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
+      VALUES (?, ?, 1, 0)
+      ON CONFLICT(user_id, date) DO UPDATE SET problems_solved = problems_solved + 1
+    `).bind(this.userId, today).run();
+
+    const patterns: string[] = JSON.parse(source.patterns || '[]');
+    for (const pattern of patterns) {
+      await this.env.DB.prepare(`
+        INSERT INTO pattern_progress (user_id, pattern, solved_count, last_practiced)
+        VALUES (?, ?, 1, datetime('now'))
+        ON CONFLICT(user_id, pattern) DO UPDATE SET
+          solved_count = solved_count + 1,
+          last_practiced = datetime('now')
+      `).bind(this.userId, pattern).run();
+    }
+
+    return `✅ Re-attempt logged for **${source.title}**! Keep practicing 💪`;
+  }
+
   private async handleLogProblem(message: string): Promise<string> {
-    if (this.isGuest) {
-      return `🔒 This is a **read-only demo** — problem logging is disabled so the sample data stays intact for other visitors.\n\nLogin with GitHub to start tracking your own progress: your problems, streaks, and NeetCode 150 progress would be saved just like this demo data.`;
+    const reviewCompletionTitle = extractReviewCompletionTitle(message);
+    if (reviewCompletionTitle) {
+      if (this.isGuest) return GUEST_READONLY_MESSAGE;
+      return await this.completeReviewByTitle(reviewCompletionTitle);
+    }
+
+    const reAttemptTitle = extractReAttemptTitle(message);
+    if (reAttemptTitle) {
+      if (this.isGuest) return GUEST_READONLY_MESSAGE;
+      return await this.logReAttempt(reAttemptTitle);
     }
 
     const parsed = await parseProblem(this.env, message);
@@ -402,11 +626,26 @@ export class GrindMateAgent {
       return "I couldn't parse that problem. Try: 'Solved LC 121 Two Sum, easy, 15 min'";
     }
 
-    const today = new Date().toISOString().split('T')[0];
     const neetcodeMatch = matchNeetCodeProblem(parsed.leetcode_id, parsed.title);
     // Backfill the canonical leetcode_id when the parser couldn't extract one,
     // so NeetCode progress can dedupe reliably by id.
     const leetcodeId = parsed.leetcode_id ?? neetcodeMatch?.leetcode_id ?? null;
+
+    // Dedup check runs even for guest, so they see the right message
+    // instead of always hitting the generic read-only wall below.
+    const existing = await this.env.DB.prepare(`
+      SELECT id, title FROM problems
+      WHERE user_id = ? AND (leetcode_id = ? OR LOWER(title) = LOWER(?))
+      LIMIT 1
+    `).bind(this.userId, leetcodeId, parsed.title).first() as { id: number; title: string } | null;
+
+    if (existing) {
+      return `Looks like you've already logged **${existing.title}** before! Want to log it as a re-attempt? Reply "yes re-attempt ${existing.title}"`;
+    }
+
+    if (this.isGuest) return GUEST_READONLY_MESSAGE;
+
+    const today = new Date().toISOString().split('T')[0];
 
     try {
       const result = await this.env.DB.prepare(`
@@ -443,14 +682,21 @@ export class GrindMateAgent {
         `).bind(this.userId, pattern).run();
       }
 
-      if (parsed.struggled && result?.id) {
-        await this.scheduleReviews(result.id, parsed.title, parsed.difficulty, parsed.patterns);
+      if (result?.id) {
+        await this.scheduleReviews({
+          leetcode_id: leetcodeId,
+          title: parsed.title,
+          difficulty: parsed.difficulty,
+          patterns: parsed.patterns,
+          struggled: parsed.struggled,
+          solvedAt: new Date().toISOString(),
+        });
       }
 
       const stats = await this.getUserStats();
       const patternStr = parsed.patterns.join(', ') || 'general';
       const timeStr = parsed.time_spent_min ? ` in ${parsed.time_spent_min} min` : '';
-      
+
       let response = `✅ Logged: **${parsed.title}** (${parsed.difficulty})${timeStr}\n`;
       response += `📊 Patterns: ${patternStr}\n`;
       response += `🔥 Streak: ${stats.current_streak} days | Total: ${stats.total_problems} problems`;
@@ -458,10 +704,8 @@ export class GrindMateAgent {
       if (neetcodeMatch) {
         response += `\n🎯 NeetCode 150: ${neetcodeMatch.category}`;
       }
-      
-      if (parsed.struggled) {
-        response += `\n\n📚 I've scheduled review reminders for this problem (1, 3, and 7 days).`;
-      }
+
+      response += `\n\n📚 I've scheduled a review for this in 1 day${parsed.struggled ? ' — I\'ll prioritize it since you struggled' : ''}.`;
 
       return response;
     } catch (error) {
@@ -471,31 +715,42 @@ export class GrindMateAgent {
   }
 
   private async handleReviewsRequest(): Promise<string> {
-    const now = Date.now();
-    const dueReviews = this.reviewQueue.filter(r => r.scheduledFor <= now);
-    const upcomingCount = this.reviewQueue.filter(r => r.scheduledFor > now).length;
+    const due = this.getDueReviews();
+    const upcomingCount = this.reviewQueue.filter(r => !r.completed).length - due.length;
 
-    if (dueReviews.length === 0 && upcomingCount === 0) {
-      return "No reviews scheduled! When you log a problem you struggled with, I'll schedule spaced repetition reviews.";
+    if (due.length === 0 && upcomingCount === 0) {
+      return "No reviews scheduled yet! Every problem you log gets a follow-up review — solve one and I'll take it from there.";
     }
 
-    if (dueReviews.length === 0) {
-      return `No reviews due right now. You have ${upcomingCount} reviews scheduled for later.`;
+    if (due.length === 0) {
+      return `No reviews due right now. You have ${upcomingCount} review${upcomingCount === 1 ? '' : 's'} scheduled for later.`;
     }
 
-    let response = `📚 **Reviews Due (${dueReviews.length})**\n\n`;
-    
-    for (const review of dueReviews.slice(0, 5)) {
-      const reviewLabel = review.reviewNumber === 1 ? '1st' : review.reviewNumber === 2 ? '2nd' : '3rd';
-      response += `• **${review.title}** (${review.difficulty}) - ${reviewLabel} review\n`;
-      response += `  Patterns: ${review.patterns.join(', ')}\n\n`;
+    const today = new Date().toISOString().split('T')[0];
+    // Struggled problems first, then earliest-solved within each group.
+    const sorted = [...due].sort((a, b) => {
+      if (a.struggled !== b.struggled) return a.struggled ? -1 : 1;
+      return a.solved_on.localeCompare(b.solved_on);
+    });
+
+    const maxShown = 8;
+    let response = `Here's what you should review today:\n\n`;
+
+    for (const review of sorted.slice(0, maxShown)) {
+      const daysAgo = Math.max(0, Math.round((Date.parse(today) - Date.parse(review.solved_on)) / 86400000));
+      const agoLabel = daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+      const difficultyLabel = review.difficulty.charAt(0).toUpperCase() + review.difficulty.slice(1);
+      const dot = review.struggled ? '🔴' : '🟡';
+      const struggledTag = review.struggled ? ' [struggled]' : '';
+
+      response += `${dot} ${review.title} (${difficultyLabel}) — solved ${agoLabel}${struggledTag}\n`;
     }
 
-    if (dueReviews.length > 5) {
-      response += `...and ${dueReviews.length - 5} more\n`;
+    if (due.length > maxShown) {
+      response += `...and ${due.length - maxShown} more\n`;
     }
 
-    response += `\nSay "completed [problem name]" after reviewing!`;
+    response += `\nGo solve them on LeetCode, then come back and tell me "reviewed [problem name]" when done.`;
 
     return response;
   }
@@ -507,8 +762,7 @@ export class GrindMateAgent {
       return "No problems logged yet! Tell me when you solve one: 'Solved LC 1 Two Sum, easy, 10 min'";
     }
 
-    const now = Date.now();
-    const dueReviews = this.reviewQueue.filter(r => r.scheduledFor <= now).length;
+    const dueReviews = this.getDueReviews().length;
 
     let response = `📊 **Your GrindMate Stats**\n\n`;
     response += `**Total:** ${stats.total_problems} problems\n`;
@@ -580,13 +834,13 @@ export class GrindMateAgent {
 
   private async handleGetStats(): Promise<Response> {
     const stats = await this.getUserStats();
-    const now = Date.now();
-    const dueReviews = this.reviewQueue.filter(r => r.scheduledFor <= now);
-    
+    const due = this.getDueReviews();
+    const pending = this.reviewQueue.filter(r => !r.completed);
+
     return Response.json({
       ...stats,
-      reviews_due: dueReviews.length,
-      reviews_upcoming: this.reviewQueue.length - dueReviews.length,
+      reviews_due: due.length,
+      reviews_upcoming: pending.length - due.length,
     });
   }
 
@@ -624,11 +878,55 @@ export class GrindMateAgent {
     });
   }
 
+  // Suggests 2-3 unsolved NeetCode 150 problems for each pattern the user
+  // has practiced fewer than 3 times, sourced from a fixed pattern → NeetCode
+  // category mapping. Patterns with no mapped category, or with no unsolved
+  // candidates left, are simply omitted from the response.
+  private async handleGetNeedsPractice(): Promise<Response> {
+    const DIFFICULTY_ORDER: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
+
+    const patterns = await this.getPatternProgress();
+    const weakPatterns = [...patterns]
+      .filter(p => p.solved_count < 3)
+      .sort((a, b) => a.solved_count - b.solved_count)
+      .slice(0, 6);
+
+    const solvedResult = await this.env.DB.prepare(`
+      SELECT DISTINCT leetcode_id FROM problems WHERE user_id = ? AND leetcode_id IS NOT NULL
+    `).bind(this.userId).all();
+    const solvedIds = new Set((solvedResult.results || []).map((row: any) => row.leetcode_id));
+
+    const needsPractice = weakPatterns
+      .map(wp => {
+        const categories = PATTERN_TO_NEETCODE_CATEGORIES[wp.pattern] || [];
+        const problems = NEETCODE_150
+          .filter(p => categories.includes(p.category) && !solvedIds.has(p.leetcode_id))
+          .sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty])
+          .slice(0, 3)
+          .map(p => ({
+            leetcode_id: p.leetcode_id,
+            title: p.title,
+            difficulty: p.difficulty,
+            slug: p.slug,
+          }));
+
+        return { pattern: wp.pattern, problems };
+      })
+      .filter(group => group.problems.length > 0);
+
+    return Response.json({ patterns: needsPractice });
+  }
+
   private async handleGetHistory(): Promise<Response> {
     return Response.json({ messages: this.messages.slice(-50) });
   }
 
   private async getUserStats(): Promise<UserStats> {
+    // re_attempt rows are excluded so totals count unique problems, not
+    // every solve attempt. Plain COUNT(*) rather than COUNT(DISTINCT
+    // leetcode_id): the dedup check in handleLogProblem already guarantees
+    // at most one non-re-attempt row per problem, and COUNT(DISTINCT ...)
+    // would silently drop rows where leetcode_id is NULL.
     const totals = await this.env.DB.prepare(`
       SELECT
         COUNT(*) as total,
@@ -636,7 +934,7 @@ export class GrindMateAgent {
         SUM(CASE WHEN difficulty = 'medium' THEN 1 ELSE 0 END) as medium,
         SUM(CASE WHEN difficulty = 'hard' THEN 1 ELSE 0 END) as hard
       FROM problems
-      WHERE user_id = ?
+      WHERE user_id = ? AND re_attempt = 0
     `).bind(this.userId).first() as any;
 
     const patterns = await this.getPatternProgress();
