@@ -3,6 +3,7 @@ import { Env } from './types';
 const GITHUB_AUTH_URL = 'https://github.com/login/oauth/authorize';
 const GITHUB_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 const GITHUB_USER_URL = 'https://api.github.com/user';
+const GITHUB_EMAILS_URL = 'https://api.github.com/user/emails';
 
 export interface User {
   id: number;
@@ -11,11 +12,19 @@ export interface User {
   name: string | null;
 }
 
+interface GitHubEmail {
+  email: string;
+  primary: boolean;
+  verified: boolean;
+}
+
 export function getGitHubAuthURL(clientId: string, redirectUri: string): string {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
-    scope: 'read:user',
+    // read:user alone does not grant access to /user/emails — user:email is
+    // required to fetch the address for daily review-reminder emails.
+    scope: 'read:user user:email',
   });
   return `${GITHUB_AUTH_URL}?${params}`;
 }
@@ -53,6 +62,25 @@ export async function getGitHubUser(accessToken: string): Promise<User | null> {
 
   if (!res.ok) return null;
   return res.json() as Promise<User>;
+}
+
+// Called once during OAuth callback with the short-lived access token,
+// which the caller discards immediately after — only the resulting email
+// address is ever persisted, never the token itself.
+export async function fetchGitHubPrimaryEmail(accessToken: string): Promise<string | null> {
+  const res = await fetch(GITHUB_EMAILS_URL, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/json',
+      'User-Agent': 'GrindMate',
+    },
+  });
+
+  if (!res.ok) return null;
+
+  const emails = await res.json() as GitHubEmail[];
+  const primary = emails.find(e => e.primary && e.verified) || emails.find(e => e.verified);
+  return primary?.email ?? null;
 }
 
 // Shared identity for the demo/recruiter login — a single, well-known

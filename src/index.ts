@@ -5,6 +5,7 @@ import {
   getGitHubAuthURL,
   getGitHubToken,
   getGitHubUser,
+  fetchGitHubPrimaryEmail,
   createSessionToken,
   createGuestSessionToken,
   verifySessionToken,
@@ -13,6 +14,7 @@ import {
   clearCookie,
 } from './auth';
 import { fetchLeetCodeProfile, fetchProblemDetails } from './leetcode';
+import { sendDailyReminders } from './email';
 
 export { GrindMateAgent } from './agent';
 
@@ -87,6 +89,23 @@ app.get('/auth/callback', async (c) => {
   }
 
   console.log('[auth/callback] GitHub username:', user.login);
+
+  // Best-effort: save the email for daily review reminders. The access
+  // token only ever exists as this local `token` variable and is discarded
+  // when this handler returns — only the resulting email is persisted.
+  try {
+    const primaryEmail = await fetchGitHubPrimaryEmail(token);
+    if (primaryEmail) {
+      await c.env.DB.prepare(`
+        INSERT INTO user_emails (user_id, email)
+        VALUES (?, ?)
+        ON CONFLICT(user_id) DO NOTHING
+      `).bind(user.login, primaryEmail).run();
+    }
+  } catch (err) {
+    console.error('[auth/callback] Failed to save email for', user.login, err);
+  }
+
   const sessionToken = createSessionToken(user.login, c.env.SESSION_SECRET);
   console.log('[auth/callback] Session token created for:', user.login);
 
@@ -324,6 +343,15 @@ app.get('/api/history', async (c) => {
   return c.json(data);
 });
 
+app.get('/__scheduled', async (c) => {
+  const secret = c.req.query('secret');
+  if (secret !== c.env.CRON_SECRET) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+  await sendDailyReminders(c.env);
+  return c.json({ success: true, message: 'Daily reminders sent' });
+});
+
 app.get('*', async (c) => {
   return c.html(`
     <!DOCTYPE html>
@@ -347,4 +375,10 @@ app.get('*', async (c) => {
   `);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(controller: ScheduledController, env: AuthEnv, ctx: ExecutionContext) {
+    console.log('[cron] Daily review reminder run starting');
+    ctx.waitUntil(sendDailyReminders(env));
+  },
+};

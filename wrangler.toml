@@ -22,6 +22,10 @@ bindings = [
 tag = "v1"
 new_sqlite_classes = ["GrindMateAgent"]
 
+# Daily review-reminder email cron (8 AM UTC)
+[triggers]
+crons = ["0 8 * * *"]
+
 # Serve React frontend from the same origin as the worker
 [assets]
 directory = "./frontend/dist"

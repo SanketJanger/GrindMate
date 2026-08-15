@@ -58,3 +58,13 @@ CREATE TABLE IF NOT EXISTS review_queue (
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_scheduled ON review_queue(user_id, scheduled_for, completed);
+
+-- Email addresses for daily review-reminder notifications. Saved once from
+-- GitHub's /user/emails on first login (see /auth/callback) — the GitHub
+-- access token used to fetch it is never itself stored here or anywhere else.
+CREATE TABLE IF NOT EXISTS user_emails (
+    user_id TEXT PRIMARY KEY,
+    email TEXT NOT NULL,
+    notify_enabled BOOLEAN DEFAULT TRUE,
+    created_at TEXT DEFAULT (datetime('now'))
+);

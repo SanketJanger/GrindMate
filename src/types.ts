@@ -72,6 +72,8 @@ export interface Env {
   DB: D1Database;
   GRINDMATE_AGENT: DurableObjectNamespace;
   ENVIRONMENT: string;
+  RESEND_API_KEY: string;
+  CRON_SECRET: string;
 }
 
 export interface AuthEnv extends Env {
