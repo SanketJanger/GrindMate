@@ -14,13 +14,17 @@ interface ReviewItem {
 export class GrindMateAgent {
   private state: DurableObjectState;
   private env: Env;
+  private userId: string;
   private messages: ChatMessage[] = [];
   private reviewQueue: ReviewItem[] = [];
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
-    
+    // index.ts creates this DO via idFromName(githubUsername), so the
+    // name round-trips onto the id — that's the per-user D1 scope key.
+    this.userId = state.id.name || 'default';
+
     this.state.blockConcurrencyWhile(async () => {
       const storedMessages = await this.state.storage.get<ChatMessage[]>('messages');
       this.messages = storedMessages || [];
@@ -152,9 +156,10 @@ export class GrindMateAgent {
       const neetcodeMatch = matchNeetCodeProblem(null, title);
 
       await this.env.DB.prepare(`
-        INSERT INTO problems (leetcode_id, title, difficulty, patterns, solved_at, neetcode, neetcode_category)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, solved_at, neetcode, neetcode_category)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
+        this.userId,
         neetcodeMatch?.leetcode_id ?? null,
         title,
         difficulty,
@@ -166,19 +171,19 @@ export class GrindMateAgent {
 
       const solvedDate = solvedAt.split('T')[0];
       await this.env.DB.prepare(`
-        INSERT INTO daily_activity (date, problems_solved, total_time_min)
-        VALUES (?, 1, 0)
-        ON CONFLICT(date) DO UPDATE SET problems_solved = problems_solved + 1
-      `).bind(solvedDate).run();
+        INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
+        VALUES (?, ?, 1, 0)
+        ON CONFLICT(user_id, date) DO UPDATE SET problems_solved = problems_solved + 1
+      `).bind(this.userId, solvedDate).run();
 
       for (const pattern of patterns) {
         await this.env.DB.prepare(`
-          INSERT INTO pattern_progress (pattern, solved_count, last_practiced)
-          VALUES (?, 1, datetime('now'))
-          ON CONFLICT(pattern) DO UPDATE SET
+          INSERT INTO pattern_progress (user_id, pattern, solved_count, last_practiced)
+          VALUES (?, ?, 1, datetime('now'))
+          ON CONFLICT(user_id, pattern) DO UPDATE SET
             solved_count = solved_count + 1,
             last_practiced = datetime('now')
-        `).bind(pattern).run();
+        `).bind(this.userId, pattern).run();
       }
 
       return Response.json({ success: true, title });
@@ -260,10 +265,11 @@ export class GrindMateAgent {
 
     try {
       const result = await this.env.DB.prepare(`
-        INSERT INTO problems (leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
-        VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
+        INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?)
         RETURNING id
       `).bind(
+        this.userId,
         leetcodeId,
         parsed.title,
         parsed.difficulty,
@@ -275,21 +281,21 @@ export class GrindMateAgent {
       ).first() as { id: number } | null;
 
       await this.env.DB.prepare(`
-        INSERT INTO daily_activity (date, problems_solved, total_time_min)
-        VALUES (?, 1, ?)
-        ON CONFLICT(date) DO UPDATE SET
+        INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(user_id, date) DO UPDATE SET
           problems_solved = problems_solved + 1,
           total_time_min = total_time_min + excluded.total_time_min
-      `).bind(today, parsed.time_spent_min || 0).run();
+      `).bind(this.userId, today, parsed.time_spent_min || 0).run();
 
       for (const pattern of parsed.patterns) {
         await this.env.DB.prepare(`
-          INSERT INTO pattern_progress (pattern, solved_count, last_practiced)
-          VALUES (?, 1, datetime('now'))
-          ON CONFLICT(pattern) DO UPDATE SET
+          INSERT INTO pattern_progress (user_id, pattern, solved_count, last_practiced)
+          VALUES (?, ?, 1, datetime('now'))
+          ON CONFLICT(user_id, pattern) DO UPDATE SET
             solved_count = solved_count + 1,
             last_practiced = datetime('now')
-        `).bind(pattern).run();
+        `).bind(this.userId, pattern).run();
       }
 
       if (parsed.struggled && result?.id) {
@@ -398,23 +404,23 @@ export class GrindMateAgent {
     const weekAgoStr = weekAgo.toISOString().split('T')[0];
 
     const weeklyResult = await this.env.DB.prepare(`
-      SELECT 
+      SELECT
         COUNT(*) as total,
         SUM(CASE WHEN difficulty = 'easy' THEN 1 ELSE 0 END) as easy,
         SUM(CASE WHEN difficulty = 'medium' THEN 1 ELSE 0 END) as medium,
         SUM(CASE WHEN difficulty = 'hard' THEN 1 ELSE 0 END) as hard,
         SUM(time_spent_min) as total_time
-      FROM problems WHERE solved_at >= ?
-    `).bind(weekAgoStr).first();
+      FROM problems WHERE user_id = ? AND solved_at >= ?
+    `).bind(this.userId, weekAgoStr).first();
 
     const dailyResult = await this.env.DB.prepare(`
       SELECT date, problems_solved, total_time_min
-      FROM daily_activity WHERE date >= ? ORDER BY date DESC
-    `).bind(weekAgoStr).all();
+      FROM daily_activity WHERE user_id = ? AND date >= ? ORDER BY date DESC
+    `).bind(this.userId, weekAgoStr).all();
 
     const patternResult = await this.env.DB.prepare(`
-      SELECT patterns FROM problems WHERE solved_at >= ?
-    `).bind(weekAgoStr).all();
+      SELECT patterns FROM problems WHERE user_id = ? AND solved_at >= ?
+    `).bind(this.userId, weekAgoStr).all();
 
     const patternCounts: Record<string, number> = {};
     for (const row of patternResult.results || []) {
@@ -448,9 +454,9 @@ export class GrindMateAgent {
     const solvedByCategory = await this.env.DB.prepare(`
       SELECT neetcode_category as category, COUNT(DISTINCT leetcode_id) as solved
       FROM problems
-      WHERE neetcode = 1 AND neetcode_category IS NOT NULL
+      WHERE user_id = ? AND neetcode = 1 AND neetcode_category IS NOT NULL
       GROUP BY neetcode_category
-    `).all();
+    `).bind(this.userId).all();
 
     const solvedMap = new Map<string, number>(
       (solvedByCategory.results || []).map((row: any) => [row.category, row.solved])
@@ -479,13 +485,14 @@ export class GrindMateAgent {
 
   private async getUserStats(): Promise<UserStats> {
     const totals = await this.env.DB.prepare(`
-      SELECT 
+      SELECT
         COUNT(*) as total,
         SUM(CASE WHEN difficulty = 'easy' THEN 1 ELSE 0 END) as easy,
         SUM(CASE WHEN difficulty = 'medium' THEN 1 ELSE 0 END) as medium,
         SUM(CASE WHEN difficulty = 'hard' THEN 1 ELSE 0 END) as hard
       FROM problems
-    `).first() as any;
+      WHERE user_id = ?
+    `).bind(this.userId).first() as any;
 
     const patterns = await this.getPatternProgress();
     const streak = await this.calculateStreak();
@@ -512,8 +519,8 @@ export class GrindMateAgent {
   private async getPatternProgress(): Promise<PatternProgress[]> {
     const result = await this.env.DB.prepare(`
       SELECT pattern, solved_count, total_problems, last_practiced
-      FROM pattern_progress ORDER BY solved_count DESC
-    `).all();
+      FROM pattern_progress WHERE user_id = ? ORDER BY solved_count DESC
+    `).bind(this.userId).all();
 
     return (result.results || []).map((row: any) => ({
       pattern: row.pattern,
@@ -525,15 +532,15 @@ export class GrindMateAgent {
 
   private async getRecentProblems(limit: number): Promise<any[]> {
     const result = await this.env.DB.prepare(`
-      SELECT * FROM problems ORDER BY solved_at DESC LIMIT ?
-    `).bind(limit).all();
+      SELECT * FROM problems WHERE user_id = ? ORDER BY solved_at DESC LIMIT ?
+    `).bind(this.userId, limit).all();
     return result.results || [];
   }
 
   private async calculateStreak(): Promise<{ current: number; longest: number }> {
     const result = await this.env.DB.prepare(`
-      SELECT date FROM daily_activity WHERE problems_solved > 0 ORDER BY date DESC
-    `).all();
+      SELECT date FROM daily_activity WHERE user_id = ? AND problems_solved > 0 ORDER BY date DESC
+    `).bind(this.userId).all();
 
     const dates = (result.results || []).map((r: any) => r.date);
     if (dates.length === 0) return { current: 0, longest: 0 };
