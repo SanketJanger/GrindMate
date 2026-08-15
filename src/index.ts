@@ -6,6 +6,7 @@ import {
   getGitHubToken,
   getGitHubUser,
   createSessionToken,
+  createGuestSessionToken,
   verifySessionToken,
   getCookie,
   setCookie,
@@ -102,6 +103,21 @@ app.get('/auth/callback', async (c) => {
   });
 });
 
+app.get('/auth/guest', (c) => {
+  const sessionToken = createGuestSessionToken(c.env.SESSION_SECRET);
+
+  const frontendUrl = c.env.FRONTEND_URL || 'http://localhost:5173';
+  const isSecure = frontendUrl.startsWith('https://');
+
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: frontendUrl,
+      'Set-Cookie': setCookie('session', sessionToken, 604800, isSecure),
+    },
+  });
+});
+
 app.get('/auth/logout', (c) => {
   const frontendUrl = c.env.FRONTEND_URL || 'http://localhost:5173';
   return new Response(null, {
@@ -116,6 +132,15 @@ app.get('/auth/logout', (c) => {
 function getAgent(env: AuthEnv, userId: string): DurableObjectStub {
   const id = env.GRINDMATE_AGENT.idFromName(userId);
   return env.GRINDMATE_AGENT.get(id);
+}
+
+// DurableObjectId.name is not reliably populated on the DO's own `state.id`
+// at runtime, so the agent can't infer the authenticated user from its own
+// identity — every internal request must carry it explicitly instead.
+function agentRequest(url: string, userId: string, init: RequestInit = {}): Request {
+  const headers = new Headers(init.headers);
+  headers.set('X-User-Id', userId);
+  return new Request(url, { ...init, headers });
 }
 
 app.get('/api/leetcode/:username', async (c) => {
@@ -166,7 +191,7 @@ app.post('/api/leetcode/import', async (c) => {
         // Log via agent
         const message = `Solved ${details.title}, ${details.difficulty.toLowerCase()}`;
         
-        await agent.fetch(new Request('http://agent/import', {
+        await agent.fetch(agentRequest('http://agent/import', userId, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -207,7 +232,7 @@ app.post('/api/chat', async (c) => {
     }
 
     const agent = getAgent(c.env, userId);
-    const response = await agent.fetch(new Request('http://agent/chat', {
+    const response = await agent.fetch(agentRequest('http://agent/chat', userId, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message })
@@ -229,7 +254,7 @@ app.get('/api/stats', async (c) => {
   }
   const agent = getAgent(c.env, userId);
   
-  const response = await agent.fetch(new Request('http://agent/stats'));
+  const response = await agent.fetch(agentRequest('http://agent/stats', userId));
   const data = await response.json();
   return c.json(data);
 });
@@ -241,7 +266,7 @@ app.get('/api/neetcode/progress', async (c) => {
   }
   const agent = getAgent(c.env, userId);
 
-  const response = await agent.fetch(new Request('http://agent/neetcode/progress'));
+  const response = await agent.fetch(agentRequest('http://agent/neetcode/progress', userId));
   const data = await response.json();
   return c.json(data);
 });
@@ -253,7 +278,7 @@ app.get('/api/history', async (c) => {
   }
   const agent = getAgent(c.env, userId);
   
-  const response = await agent.fetch(new Request('http://agent/history'));
+  const response = await agent.fetch(agentRequest('http://agent/history', userId));
   const data = await response.json();
   return c.json(data);
 });

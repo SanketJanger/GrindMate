@@ -1,6 +1,7 @@
 import { Env, Problem, UserStats, PatternProgress, ChatMessage } from './types';
 import { chat, parseProblem, detectIntent, getRecommendations, getWeeklySummary } from './ai';
 import { matchNeetCodeProblem, NEETCODE_150 } from './neetcode';
+import { GUEST_USER_ID } from './auth';
 
 interface ReviewItem {
   problemId: number;
@@ -11,27 +12,150 @@ interface ReviewItem {
   reviewNumber: number;
 }
 
+interface GuestSeedProblem {
+  leetcode_id: number;
+  title: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  patterns: string[];
+  timeSpentMin: number;
+  daysAgo: number;
+  neetcode: boolean;
+  neetcodeCategory: string | null;
+  struggled?: boolean;
+}
+
+// Demo data for the guest_demo account, oldest first so pattern_progress's
+// last_practiced ends up as the most recent date for each pattern.
+// Days 0-6 each have >=1 problem to produce a clean 7-day current streak;
+// days 7-8 are deliberately empty so the streak doesn't run longer than that.
+// Arrays & Hashing (4/9), Two Pointers (2/5), and Trees (3/15) are seeded
+// as partially solved so the NeetCode dashboard shows in-progress categories.
+const GUEST_SEED_PROBLEMS: GuestSeedProblem[] = [
+  { leetcode_id: 547, title: 'Number of Provinces', difficulty: 'medium', patterns: ['graphs'], timeSpentMin: 28, daysAgo: 13, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 516, title: 'Longest Palindromic Subsequence', difficulty: 'medium', patterns: ['dynamic_programming'], timeSpentMin: 35, daysAgo: 12, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 132, title: 'Palindrome Partitioning II', difficulty: 'hard', patterns: ['dynamic_programming'], timeSpentMin: 50, daysAgo: 12, neetcode: false, neetcodeCategory: null, struggled: true },
+  { leetcode_id: 113, title: 'Path Sum II', difficulty: 'medium', patterns: ['trees', 'backtracking'], timeSpentMin: 25, daysAgo: 11, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 47, title: 'Permutations II', difficulty: 'medium', patterns: ['backtracking'], timeSpentMin: 22, daysAgo: 11, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 140, title: 'Word Break II', difficulty: 'hard', patterns: ['dynamic_programming', 'backtracking'], timeSpentMin: 48, daysAgo: 10, neetcode: false, neetcodeCategory: null, struggled: true },
+  { leetcode_id: 112, title: 'Path Sum', difficulty: 'easy', patterns: ['trees'], timeSpentMin: 12, daysAgo: 10, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 64, title: 'Minimum Path Sum', difficulty: 'medium', patterns: ['dynamic_programming'], timeSpentMin: 20, daysAgo: 9, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 63, title: 'Unique Paths II', difficulty: 'medium', patterns: ['dynamic_programming'], timeSpentMin: 18, daysAgo: 9, neetcode: false, neetcodeCategory: null },
+  { leetcode_id: 1, title: 'Two Sum', difficulty: 'easy', patterns: ['arrays_hashing'], timeSpentMin: 10, daysAgo: 6, neetcode: true, neetcodeCategory: 'Arrays & Hashing' },
+  { leetcode_id: 100, title: 'Same Tree', difficulty: 'easy', patterns: ['trees'], timeSpentMin: 8, daysAgo: 6, neetcode: true, neetcodeCategory: 'Trees' },
+  { leetcode_id: 217, title: 'Contains Duplicate', difficulty: 'easy', patterns: ['arrays_hashing'], timeSpentMin: 9, daysAgo: 5, neetcode: true, neetcodeCategory: 'Arrays & Hashing' },
+  { leetcode_id: 242, title: 'Valid Anagram', difficulty: 'easy', patterns: ['arrays_hashing'], timeSpentMin: 11, daysAgo: 4, neetcode: true, neetcodeCategory: 'Arrays & Hashing' },
+  { leetcode_id: 49, title: 'Group Anagrams', difficulty: 'medium', patterns: ['arrays_hashing'], timeSpentMin: 20, daysAgo: 3, neetcode: true, neetcodeCategory: 'Arrays & Hashing' },
+  { leetcode_id: 125, title: 'Valid Palindrome', difficulty: 'easy', patterns: ['two_pointers'], timeSpentMin: 9, daysAgo: 2, neetcode: true, neetcodeCategory: 'Two Pointers' },
+  { leetcode_id: 11, title: 'Container With Most Water', difficulty: 'medium', patterns: ['two_pointers'], timeSpentMin: 18, daysAgo: 1, neetcode: true, neetcodeCategory: 'Two Pointers' },
+  { leetcode_id: 226, title: 'Invert Binary Tree', difficulty: 'easy', patterns: ['trees'], timeSpentMin: 7, daysAgo: 0, neetcode: true, neetcodeCategory: 'Trees' },
+  { leetcode_id: 104, title: 'Maximum Depth of Binary Tree', difficulty: 'easy', patterns: ['trees'], timeSpentMin: 6, daysAgo: 0, neetcode: true, neetcodeCategory: 'Trees' },
+];
+
 export class GrindMateAgent {
   private state: DurableObjectState;
   private env: Env;
-  private userId: string;
+  // DurableObjectId.name is not reliably populated on the DO's own
+  // state.id at runtime, so the per-user scope key can't be inferred from
+  // identity alone — index.ts passes it explicitly via the X-User-Id
+  // header on every request instead (see fetch() below).
+  private userId: string = 'default';
   private messages: ChatMessage[] = [];
   private reviewQueue: ReviewItem[] = [];
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
-    // index.ts creates this DO via idFromName(githubUsername), so the
-    // name round-trips onto the id — that's the per-user D1 scope key.
-    this.userId = state.id.name || 'default';
 
     this.state.blockConcurrencyWhile(async () => {
       const storedMessages = await this.state.storage.get<ChatMessage[]>('messages');
       this.messages = storedMessages || [];
-      
+
       const storedReviews = await this.state.storage.get<ReviewItem[]>('reviewQueue');
       this.reviewQueue = storedReviews || [];
     });
+  }
+
+  private get isGuest(): boolean {
+    return this.userId === GUEST_USER_ID;
+  }
+
+  // Populates the shared guest_demo account with a realistic solve history
+  // the first time its Durable Object is constructed. Guarded by the
+  // problems count so it never re-seeds (and never overwrites) on later
+  // requests once data exists.
+  private async seedGuestDataIfEmpty(): Promise<void> {
+    const existing = await this.env.DB.prepare(`
+      SELECT COUNT(*) as count FROM problems WHERE user_id = ?
+    `).bind(GUEST_USER_ID).first() as { count: number } | null;
+
+    if (existing && existing.count > 0) return;
+
+    const now = Date.now();
+    const struggledReviewTargets: { problemId: number; title: string; difficulty: string; patterns: string[] }[] = [];
+
+    for (const seed of GUEST_SEED_PROBLEMS) {
+      const solvedAt = new Date(now - seed.daysAgo * 24 * 60 * 60 * 1000).toISOString();
+      const solvedDate = solvedAt.split('T')[0];
+
+      const result = await this.env.DB.prepare(`
+        INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        RETURNING id
+      `).bind(
+        GUEST_USER_ID,
+        seed.leetcode_id,
+        seed.title,
+        seed.difficulty,
+        JSON.stringify(seed.patterns),
+        seed.timeSpentMin,
+        seed.struggled ? 1 : 0,
+        solvedAt,
+        seed.neetcode ? 1 : 0,
+        seed.neetcodeCategory
+      ).first() as { id: number } | null;
+
+      await this.env.DB.prepare(`
+        INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(user_id, date) DO UPDATE SET
+          problems_solved = problems_solved + 1,
+          total_time_min = total_time_min + excluded.total_time_min
+      `).bind(GUEST_USER_ID, solvedDate, seed.timeSpentMin).run();
+
+      for (const pattern of seed.patterns) {
+        await this.env.DB.prepare(`
+          INSERT INTO pattern_progress (user_id, pattern, solved_count, last_practiced)
+          VALUES (?, ?, 1, ?)
+          ON CONFLICT(user_id, pattern) DO UPDATE SET
+            solved_count = solved_count + 1,
+            last_practiced = excluded.last_practiced
+        `).bind(GUEST_USER_ID, pattern, solvedAt).run();
+      }
+
+      if (seed.struggled && result?.id) {
+        struggledReviewTargets.push({
+          problemId: result.id,
+          title: seed.title,
+          difficulty: seed.difficulty,
+          patterns: seed.patterns,
+        });
+      }
+    }
+
+    // Backdate 1-2 reviews into the past so they show up as already due,
+    // rather than scheduling them forward like a real struggled-problem log would.
+    const overdueOffsetsMs = [2 * 24 * 60 * 60 * 1000, 12 * 60 * 60 * 1000];
+    for (const [i, target] of struggledReviewTargets.entries()) {
+      this.reviewQueue.push({
+        problemId: target.problemId,
+        title: target.title,
+        difficulty: target.difficulty,
+        patterns: target.patterns,
+        scheduledFor: now - (overdueOffsetsMs[i] ?? 24 * 60 * 60 * 1000),
+        reviewNumber: 1,
+      });
+    }
+    await this.state.storage.put('reviewQueue', this.reviewQueue);
   }
 
   async alarm(): Promise<void> {
@@ -50,6 +174,12 @@ export class GrindMateAgent {
   }
 
   async fetch(request: Request): Promise<Response> {
+    this.userId = request.headers.get('X-User-Id') || 'default';
+
+    if (this.isGuest) {
+      await this.seedGuestDataIfEmpty();
+    }
+
     const url = new URL(request.url);
 
     if (request.headers.get('Upgrade') === 'websocket') {
@@ -141,6 +271,13 @@ export class GrindMateAgent {
   }
 
   private async handleImport(request: Request): Promise<Response> {
+    if (this.isGuest) {
+      return Response.json(
+        { error: 'Import is disabled in demo mode. Login with GitHub to import your own LeetCode history.' },
+        { status: 403 }
+      );
+    }
+
     try {
       const { title, difficulty, patterns, timestamp } = await request.json() as {
         title: string;
@@ -240,8 +377,12 @@ export class GrindMateAgent {
       };
       this.messages.push(assistantMsg);
 
-      const toStore = this.messages.slice(-100);
-      await this.state.storage.put('messages', toStore);
+      // Guest is a single shared identity across every visitor — never
+      // persist its chat history so one demo session can't bleed into another.
+      if (!this.isGuest) {
+        const toStore = this.messages.slice(-100);
+        await this.state.storage.put('messages', toStore);
+      }
 
       return Response.json({ response, intent, timestamp: assistantMsg.timestamp });
     } catch (error) {
@@ -251,8 +392,12 @@ export class GrindMateAgent {
   }
 
   private async handleLogProblem(message: string): Promise<string> {
+    if (this.isGuest) {
+      return `🔒 This is a **read-only demo** — problem logging is disabled so the sample data stays intact for other visitors.\n\nLogin with GitHub to start tracking your own progress: your problems, streaks, and NeetCode 150 progress would be saved just like this demo data.`;
+    }
+
     const parsed = await parseProblem(this.env, message);
-    
+
     if (!parsed) {
       return "I couldn't parse that problem. Try: 'Solved LC 121 Two Sum, easy, 15 min'";
     }

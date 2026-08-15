@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, MessageSquare, LogIn, LogOut, User, Download } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, LogIn, LogOut, User, Download, Sparkles, Info } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
 import Import from './pages/Import'
+
+const GUEST_USER_ID = 'guest_demo'
 
 function App() {
   const [page, setPage] = useState<'dashboard' | 'chat' | 'import'>('dashboard')
@@ -45,54 +47,74 @@ function App() {
           <LogIn className="w-5 h-5" />
           Login with GitHub
         </a>
+        <a
+          href="/auth/guest"
+          className="flex items-center gap-2 border border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white px-6 py-3 rounded-lg transition mt-3"
+        >
+          <Sparkles className="w-5 h-5" />
+          View Demo (no login required)
+        </a>
       </div>
     )
   }
 
-  return (
-    <div className="min-h-screen bg-gray-900 flex">
-      <div className="w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
-        <button
-          onClick={() => setPage('dashboard')}
-          className={`p-3 rounded-lg transition ${page === 'dashboard' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
-          title="Dashboard"
-        >
-          <LayoutDashboard className="w-6 h-6" />
-        </button>
-        <button
-          onClick={() => setPage('chat')}
-          className={`p-3 rounded-lg transition ${page === 'chat' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
-          title="Chat"
-        >
-          <MessageSquare className="w-6 h-6" />
-        </button>
-        <button
-          onClick={() => setPage('import')}
-          className={`p-3 rounded-lg transition ${page === 'import' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
-          title="Import from LeetCode"
-        >
-          <Download className="w-6 h-6" />
-        </button>
-        
-        <div className="flex-1" />
-        
-        <div className="p-2 text-gray-400" title={user}>
-          <User className="w-5 h-5" />
-        </div>
-        
-        <a
-          href="/auth/logout"
-          className="p-3 hover:bg-gray-700 rounded-lg transition text-red-400"
-          title="Logout"
-        >
-          <LogOut className="w-5 h-5" />
-        </a>
-      </div>
+  const isGuest = user === GUEST_USER_ID
 
-      <div className="flex-1">
-        {page === 'dashboard' && <Dashboard />}
-        {page === 'chat' && <Chat />}
-        {page === 'import' && <Import />}
+  return (
+    <div className="min-h-screen bg-gray-900 flex flex-col">
+      {isGuest && (
+        <div className="bg-blue-900/40 border-b border-blue-700 text-blue-200 text-sm px-4 py-2 flex items-center justify-center gap-2 text-center">
+          <Info className="w-4 h-4 shrink-0" />
+          <span>
+            You're viewing a demo. <a href="/auth/login" className="underline font-medium hover:text-white">Login with GitHub</a> to track your own progress.
+          </span>
+        </div>
+      )}
+
+      <div className="flex flex-1 min-h-0">
+        <div className="w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
+          <button
+            onClick={() => setPage('dashboard')}
+            className={`p-3 rounded-lg transition ${page === 'dashboard' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+            title="Dashboard"
+          >
+            <LayoutDashboard className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setPage('chat')}
+            className={`p-3 rounded-lg transition ${page === 'chat' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+            title="Chat"
+          >
+            <MessageSquare className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setPage('import')}
+            className={`p-3 rounded-lg transition ${page === 'import' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+            title="Import from LeetCode"
+          >
+            <Download className="w-6 h-6" />
+          </button>
+
+          <div className="flex-1" />
+
+          <div className="p-2 text-gray-400" title={user}>
+            <User className="w-5 h-5" />
+          </div>
+
+          <a
+            href="/auth/logout"
+            className="p-3 hover:bg-gray-700 rounded-lg transition text-red-400"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </a>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {page === 'dashboard' && <Dashboard />}
+          {page === 'chat' && <Chat />}
+          {page === 'import' && <Import />}
+        </div>
       </div>
     </div>
   )

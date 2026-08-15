@@ -55,6 +55,14 @@ export async function getGitHubUser(accessToken: string): Promise<User | null> {
   return res.json() as Promise<User>;
 }
 
+// Shared identity for the demo/recruiter login — a single, well-known
+// account so demo data can be seeded once and read back consistently.
+export const GUEST_USER_ID = 'guest_demo';
+
+export function createGuestSessionToken(secret: string): string {
+  return createSessionToken(GUEST_USER_ID, secret);
+}
+
 export function createSessionToken(userId: string, secret: string): string {
   const timestamp = Date.now();
   const data = `${userId}:${timestamp}`;
