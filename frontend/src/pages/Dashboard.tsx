@@ -146,7 +146,7 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="h-full bg-gray-900 flex items-center justify-center">
         <div className="text-gray-400">Loading stats...</div>
       </div>
     )
@@ -164,7 +164,7 @@ export default function Dashboard() {
   })) || []
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="h-full bg-gray-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">GrindMate</h1>
         <p className="text-gray-400 mb-8">Your DSA Buddy</p>

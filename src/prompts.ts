@@ -36,7 +36,7 @@ Message: "{message}"
 
 Respond with ONLY valid JSON, no explanation.`;
 
-export const RECOMMENDATION_PROMPT = `Based on this user's practice data, suggest 2-3 specific LeetCode problems to practice next.
+export const RECOMMENDATION_PROMPT = `Based on this user's practice data, pick exactly 3 specific LeetCode problems to practice next.
 
 User Stats:
 {stats}
@@ -53,7 +53,8 @@ Consider:
 3. Problems that build on what they've done
 4. Areas they're weak in
 
-Be specific with problem names and numbers. Explain why each is recommended.`;
+Return ONLY a JSON array of exactly 3 objects, no explanation, in this exact shape:
+[{"title": "Problem Name", "difficulty": "easy", "pattern": "Pattern Name"}]`;
 
 export const WEEKLY_SUMMARY_PROMPT = `Generate an encouraging weekly summary for this user.
 

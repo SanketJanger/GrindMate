@@ -25,6 +25,19 @@ function normalizeForMatch(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+function titleCase(text: string): string {
+  return text
+    .replace(/_/g, ' ')
+    .split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 // Recognizes chat phrasing like "reviewed two sum" or "done with two sum
 // review" so handleLogProblem can route it to review completion instead of
 // trying to parse it as a newly solved problem.
@@ -51,6 +64,13 @@ function extractReviewCompletionTitle(message: string): string | null {
 function extractReAttemptTitle(message: string): string | null {
   const match = message.match(/^(?:yes\s+)?re-?attempt(?:ed)?\s+(.+?)[.!]?$/i);
   return match?.[1]?.trim() || null;
+}
+
+// Recognizes "add this also into review" / "add this to review" / "add to
+// reviews" — every logged problem already gets a review scheduled
+// automatically, so there is no manual "add to review" action to perform.
+function isManualAddToReviewRequest(message: string): boolean {
+  return /^add\s+(?:this\s+)?(?:also\s+)?(?:to|into)\s+(?:my\s+)?reviews?\b/i.test(message.trim());
 }
 
 const GUEST_READONLY_MESSAGE = `🔒 This is a **read-only demo** — problem logging is disabled so the sample data stays intact for other visitors.\n\nLogin with GitHub to start tracking your own progress: your problems, streaks, and NeetCode 150 progress would be saved just like this demo data.`;
@@ -372,18 +392,18 @@ export class GrindMateAgent {
       .sort((a, b) => a.review_number - b.review_number)[0];
 
     if (!review) {
-      return `I couldn't find a pending review for "${rawTitle}". Say "show my reviews" to see what's due.`;
+      return `Couldn't find a pending review for "${rawTitle}". Say 'show my reviews' to check.`;
     }
 
     const reviewNumber = review.review_number;
     const nextReview = await this.markReviewCompleted(review);
 
     if (!nextReview) {
-      return `✅ **${review.title}** review #${reviewNumber} done!\n\n🎉 You've mastered this one — no more reviews needed.`;
+      return `✅ ${review.title} review #${reviewNumber} done!\n🎉 Mastered — no more reviews!`;
     }
 
     const daysUntilNext = REVIEW_INTERVAL_DAYS[reviewNumber];
-    return `✅ **${review.title}** review #${reviewNumber} done!\nI'll remind you to review it again in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}.`;
+    return `✅ ${review.title} review #${reviewNumber} done!\n🔔 Next review in ${daysUntilNext} day${daysUntilNext === 1 ? '' : 's'}`;
   }
 
   private async handleGetReviews(): Promise<Response> {
@@ -604,10 +624,14 @@ export class GrindMateAgent {
       `).bind(this.userId, pattern).run();
     }
 
-    return `✅ Re-attempt logged for **${source.title}**! Keep practicing 💪`;
+    return `✅ Re-attempt logged: ${source.title} (${capitalize(source.difficulty)})\nKeep grinding! 💪`;
   }
 
   private async handleLogProblem(message: string): Promise<string> {
+    if (isManualAddToReviewRequest(message)) {
+      return "Reviews are scheduled automatically for every problem you log! Check your Reviews Due on the dashboard.";
+    }
+
     const reviewCompletionTitle = extractReviewCompletionTitle(message);
     if (reviewCompletionTitle) {
       if (this.isGuest) return GUEST_READONLY_MESSAGE;
@@ -640,7 +664,7 @@ export class GrindMateAgent {
     `).bind(this.userId, leetcodeId, parsed.title).first() as { id: number; title: string } | null;
 
     if (existing) {
-      return `Looks like you've already logged **${existing.title}** before! Want to log it as a re-attempt? Reply "yes re-attempt ${existing.title}"`;
+      return `⚠️ You've already logged ${existing.title}.\nReply 'yes re-attempt ${existing.title}' to log again.`;
     }
 
     if (this.isGuest) return GUEST_READONLY_MESSAGE;
@@ -693,19 +717,14 @@ export class GrindMateAgent {
         });
       }
 
-      const stats = await this.getUserStats();
-      const patternStr = parsed.patterns.join(', ') || 'general';
-      const timeStr = parsed.time_spent_min ? ` in ${parsed.time_spent_min} min` : '';
+      const patternStr = parsed.patterns.length > 0 ? parsed.patterns.map(titleCase).join(', ') : 'General';
 
-      let response = `✅ Logged: **${parsed.title}** (${parsed.difficulty})${timeStr}\n`;
-      response += `📊 Patterns: ${patternStr}\n`;
-      response += `🔥 Streak: ${stats.current_streak} days | Total: ${stats.total_problems} problems`;
-
-      if (neetcodeMatch) {
-        response += `\n🎯 NeetCode 150: ${neetcodeMatch.category}`;
+      let response = `✅ Logged: ${parsed.title} (${capitalize(parsed.difficulty)})\n`;
+      response += `📚 Pattern: ${patternStr}\n`;
+      if (parsed.time_spent_min) {
+        response += `⏱️ Time: ${parsed.time_spent_min} min\n`;
       }
-
-      response += `\n\n📚 I've scheduled a review for this in 1 day${parsed.struggled ? ' — I\'ll prioritize it since you struggled' : ''}.`;
+      response += `🔔 Review scheduled in 1 day`;
 
       return response;
     } catch (error) {
@@ -733,24 +752,24 @@ export class GrindMateAgent {
       return a.solved_on.localeCompare(b.solved_on);
     });
 
-    const maxShown = 8;
-    let response = `Here's what you should review today:\n\n`;
+    const maxShown = 5;
+    let response = `📋 Due for review today:\n\n`;
 
     for (const review of sorted.slice(0, maxShown)) {
       const daysAgo = Math.max(0, Math.round((Date.parse(today) - Date.parse(review.solved_on)) / 86400000));
       const agoLabel = daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
-      const difficultyLabel = review.difficulty.charAt(0).toUpperCase() + review.difficulty.slice(1);
+      const difficultyLabel = capitalize(review.difficulty);
       const dot = review.struggled ? '🔴' : '🟡';
       const struggledTag = review.struggled ? ' [struggled]' : '';
 
-      response += `${dot} ${review.title} (${difficultyLabel}) — solved ${agoLabel}${struggledTag}\n`;
+      response += `${dot} ${review.title} (${difficultyLabel}) — ${agoLabel}${struggledTag}\n`;
     }
 
     if (due.length > maxShown) {
       response += `...and ${due.length - maxShown} more\n`;
     }
 
-    response += `\nGo solve them on LeetCode, then come back and tell me "reviewed [problem name]" when done.`;
+    response += `\nSay 'reviewed [problem name]' when done.`;
 
     return response;
   }
@@ -764,23 +783,11 @@ export class GrindMateAgent {
 
     const dueReviews = this.getDueReviews().length;
 
-    let response = `📊 **Your GrindMate Stats**\n\n`;
-    response += `**Total:** ${stats.total_problems} problems\n`;
-    response += `**By Difficulty:** Easy: ${stats.problems_by_difficulty.easy} | Medium: ${stats.problems_by_difficulty.medium} | Hard: ${stats.problems_by_difficulty.hard}\n`;
-    response += `**Streak:** 🔥 ${stats.current_streak} days (best: ${stats.longest_streak})\n`;
-    
-    if (dueReviews > 0) {
-      response += `**Reviews Due:** 📚 ${dueReviews} problems to review\n`;
-    }
-    
-    response += `\n`;
-    
-    if (stats.strong_patterns.length > 0) {
-      response += `**Strong:** ${stats.strong_patterns.slice(0, 3).join(', ')}\n`;
-    }
-    if (stats.weak_patterns.length > 0) {
-      response += `**Needs Work:** ${stats.weak_patterns.slice(0, 3).join(', ')}\n`;
-    }
+    let response = `📊 Your Progress:\n`;
+    response += `✅ Solved: ${stats.total_problems} problems\n`;
+    response += `🔥 Streak: ${stats.current_streak} days\n`;
+    response += `📚 Patterns: ${stats.patterns.length}\n`;
+    response += `⚠️ Reviews due: ${dueReviews}`;
 
     return response;
   }
@@ -791,10 +798,21 @@ export class GrindMateAgent {
     const patterns = await this.getPatternProgress();
 
     if (stats.total_problems === 0) {
-      return "Start with LC 1 - Two Sum (Easy, Arrays/Hash Map)!";
+      return `💡 Practice next:\n1. Two Sum (Easy) — Arrays`;
     }
 
-    return await getRecommendations(this.env, stats, recent, patterns);
+    const recommendations = await getRecommendations(this.env, stats, recent, patterns);
+
+    if (!recommendations || recommendations.length === 0) {
+      return "Couldn't come up with recommendations right now — try again in a bit.";
+    }
+
+    let response = `💡 Practice next:\n`;
+    recommendations.forEach((rec, i) => {
+      response += `${i + 1}. ${rec.title} (${capitalize(rec.difficulty)}) — ${titleCase(rec.pattern)}\n`;
+    });
+
+    return response.trimEnd();
   }
 
   private async handleWeeklySummaryRequest(): Promise<string> {

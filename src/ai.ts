@@ -70,27 +70,55 @@ export async function parseProblem(env: Env, message: string): Promise<ParsedPro
 }
 
 // Generate recommendations based on user's history
+export interface RecommendedProblem {
+  title: string;
+  difficulty: string;
+  pattern: string;
+}
+
 export async function getRecommendations(
   env: Env,
   stats: UserStats,
   recentProblems: any[],
   patternProgress: PatternProgress[]
-): Promise<string> {
+): Promise<RecommendedProblem[] | null> {
+  // {recent}/{patterns} must match RECOMMENDATION_PROMPT's actual
+  // placeholder names, or the AI receives the literal "{recent}"/"{patterns}"
+  // text instead of real data.
   const prompt = RECOMMENDATION_PROMPT
     .replace('{stats}', JSON.stringify(stats, null, 2))
-    .replace('{recent_problems}', JSON.stringify(recentProblems, null, 2))
-    .replace('{pattern_progress}', JSON.stringify(patternProgress, null, 2));
+    .replace('{recent}', JSON.stringify(recentProblems, null, 2))
+    .replace('{patterns}', JSON.stringify(patternProgress, null, 2));
 
-  const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
-    messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: prompt }
-    ],
-    max_tokens: 400,
-    temperature: 0.7
-  });
+  try {
+    const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+      messages: [
+        { role: 'system', content: 'You are a JSON generator. Return ONLY a valid JSON array, no explanation.' },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 300,
+      temperature: 0.5
+    });
 
-  return (response as any).response || 'Practice some Dynamic Programming - you haven\'t touched it in a while!';
+    const text = (response as any).response || '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) return null;
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    if (!Array.isArray(parsed)) return null;
+
+    return parsed
+      .filter((p: any) => p?.title && p?.difficulty)
+      .slice(0, 3)
+      .map((p: any) => ({
+        title: String(p.title),
+        difficulty: String(p.difficulty).toLowerCase(),
+        pattern: String(p.pattern || 'General'),
+      }));
+  } catch (error) {
+    console.error('Failed to get recommendations:', error);
+    return null;
+  }
 }
 
 // Generate weekly summary
@@ -124,7 +152,7 @@ export async function detectIntent(env: Env, message: string): Promise<string> {
 Message: "${message}"
 
 Categories:
-- LOG_PROBLEM: User is logging a solved problem (mentions solving, completed, finished, done with a problem), OR telling you they finished reviewing a problem they logged earlier (mentions "reviewed", "done with the review of", "done reviewing")
+- LOG_PROBLEM: User is logging a solved problem (mentions solving, completed, finished, done with a problem), telling you they finished reviewing a problem they logged earlier (mentions "reviewed", "done with the review of", "done reviewing"), or asking to manually add a problem to their reviews (mentions "add to review", "add this to review")
 - GET_STATS: User wants to see their progress/stats
 - GET_RECOMMENDATION: User asks what to practice next
 - GET_WEEKLY_SUMMARY: User asks for weekly summary/report

@@ -71,8 +71,8 @@ function App() {
         </div>
       )}
 
-      <div className="flex flex-1 min-h-0">
-        <div className="w-16 bg-gray-800 flex flex-col items-center py-4 gap-4">
+      <div className="flex flex-1 min-h-0 mb-16">
+        <div className="hidden md:flex w-16 bg-gray-800 flex-col items-center py-4 gap-4">
           <button
             onClick={() => setPage('dashboard')}
             className={`p-3 rounded-lg transition ${page === 'dashboard' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
@@ -116,6 +116,30 @@ function App() {
           {page === 'import' && <Import />}
         </div>
       </div>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800 border-t border-gray-700 flex justify-around items-center py-2">
+        <button
+          onClick={() => setPage('dashboard')}
+          className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition ${page === 'dashboard' ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+        >
+          <LayoutDashboard className="w-5 h-5" />
+          <span className="text-xs">Dashboard</span>
+        </button>
+        <button
+          onClick={() => setPage('chat')}
+          className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition ${page === 'chat' ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+        >
+          <MessageSquare className="w-5 h-5" />
+          <span className="text-xs">Chat</span>
+        </button>
+        <button
+          onClick={() => setPage('import')}
+          className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition ${page === 'import' ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
+        >
+          <Download className="w-5 h-5" />
+          <span className="text-xs">Import</span>
+        </button>
+      </nav>
     </div>
   )
 }
