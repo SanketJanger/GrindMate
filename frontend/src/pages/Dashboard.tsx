@@ -66,7 +66,8 @@ export default function Dashboard({
   const [stats, setStats] = useState<Stats | null>(null)
   const [neetcode, setNeetcode] = useState<NeetCodeProgress | null>(null)
   const [needsPractice, setNeedsPractice] = useState<NeedsPracticeGroup[]>([])
-  const [loading, setLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [neetcodeLoading, setNeetcodeLoading] = useState(true)
   const [demoBannerDismissed, setDemoBannerDismissed] = useState(
     () => localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) === 'true'
   )
@@ -91,7 +92,7 @@ export default function Dashboard({
     } catch (err) {
       console.error('Failed to fetch stats:', err)
     } finally {
-      setLoading(false)
+      setStatsLoading(false)
     }
   }
 
@@ -102,6 +103,8 @@ export default function Dashboard({
       setNeetcode(data)
     } catch (err) {
       console.error('Failed to fetch NeetCode progress:', err)
+    } finally {
+      setNeetcodeLoading(false)
     }
   }
 
@@ -160,14 +163,6 @@ export default function Dashboard({
     setDemoBannerDismissed(true)
   }
 
-  if (loading) {
-    return (
-      <div className="h-full bg-gray-900 flex items-center justify-center">
-        <div className="text-gray-400">Loading stats...</div>
-      </div>
-    )
-  }
-
   const difficultyData = stats ? [
     { name: 'Easy', value: stats.problems_by_difficulty.easy },
     { name: 'Medium', value: stats.problems_by_difficulty.medium },
@@ -191,33 +186,45 @@ export default function Dashboard({
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <StatCard
-            icon={<Target className="w-6 h-6 text-blue-400" />}
-            label="Total Solved"
-            value={stats?.total_problems || 0}
-          />
-          <StatCard
-            icon={<Flame className="w-6 h-6 text-orange-400" />}
-            label="Current Streak"
-            value={`${stats?.current_streak || 0} days`}
-          />
-          <StatCard
-            icon={<TrendingUp className="w-6 h-6 text-green-400" />}
-            label="Best Streak"
-            value={`${stats?.longest_streak || 0} days`}
-          />
-          <StatCard
-            icon={<MessageSquare className="w-6 h-6 text-purple-400" />}
-            label="Patterns"
-            value={stats?.patterns.length || 0}
-          />
-          <StatCard
-            icon={<BookOpen className="w-6 h-6 text-yellow-400" />}
-            label="Reviews Due"
-            value={stats?.reviews_due || 0}
-            highlight={!!stats?.reviews_due && stats.reviews_due > 0}
-            onClick={openReviews}
-          />
+          {statsLoading ? (
+            <>
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+              <StatCardSkeleton />
+            </>
+          ) : (
+            <>
+              <StatCard
+                icon={<Target className="w-6 h-6 text-blue-400" />}
+                label="Total Solved"
+                value={stats?.total_problems || 0}
+              />
+              <StatCard
+                icon={<Flame className="w-6 h-6 text-orange-400" />}
+                label="Current Streak"
+                value={`${stats?.current_streak || 0} days`}
+              />
+              <StatCard
+                icon={<TrendingUp className="w-6 h-6 text-green-400" />}
+                label="Best Streak"
+                value={`${stats?.longest_streak || 0} days`}
+              />
+              <StatCard
+                icon={<MessageSquare className="w-6 h-6 text-purple-400" />}
+                label="Patterns"
+                value={stats?.patterns.length || 0}
+              />
+              <StatCard
+                icon={<BookOpen className="w-6 h-6 text-yellow-400" />}
+                label="Reviews Due"
+                value={stats?.reviews_due || 0}
+                highlight={!!stats?.reviews_due && stats.reviews_due > 0}
+                onClick={openReviews}
+              />
+            </>
+          )}
         </div>
 
         {/* Reviews Alert */}
@@ -259,67 +266,85 @@ export default function Dashboard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gray-800 rounded-lg p-6">
                 <h2 className="text-lg font-semibold mb-4">By Difficulty</h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={difficultyData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {difficultyData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+                <div className="min-h-[300px]">
+                  {statsLoading ? (
+                    <ChartSkeleton />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={difficultyData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}`}
+                        >
+                          {difficultyData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
               <div className="bg-gray-800 rounded-lg p-6">
                 <h2 className="text-lg font-semibold mb-4">Top Patterns</h2>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={patternData} layout="vertical">
-                      <XAxis type="number" stroke="#9ca3af" />
-                      <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
-                      <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
-                      <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="min-h-[300px]">
+                  {statsLoading ? (
+                    <ChartSkeleton />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={patternData} layout="vertical">
+                        <XAxis type="number" stroke="#9ca3af" />
+                        <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
+                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
+                        <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* NeetCode 150 Progress */}
-            {neetcode && (
-              <div className="bg-gray-800 rounded-lg p-6 mb-8">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
+            <div className="bg-gray-800 rounded-lg p-6 mb-8 min-h-[200px]">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
+                {!neetcodeLoading && neetcode && (
                   <span className="text-gray-400 text-sm">
                     {neetcode.solved}/{neetcode.total} solved
                   </span>
-                </div>
-
-                <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
-                  <div
-                    className="h-full bg-blue-500 rounded-full transition-all"
-                    style={{ width: `${neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0}%` }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {neetcode.categories.map((cat) => (
-                    <NeetCodeCategoryCard key={cat.category} category={cat} />
-                  ))}
-                </div>
+                )}
               </div>
-            )}
+
+              <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 rounded-full transition-all"
+                  style={{
+                    width: !neetcodeLoading && neetcode && neetcode.total > 0
+                      ? `${(neetcode.solved / neetcode.total) * 100}%`
+                      : '0%',
+                  }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {neetcodeLoading || !neetcode ? (
+                  Array.from({ length: 18 }).map((_, i) => (
+                    <NeetCodeCategoryCardSkeleton key={i} />
+                  ))
+                ) : (
+                  neetcode.categories.map((cat) => (
+                    <NeetCodeCategoryCard key={cat.category} category={cat} />
+                  ))
+                )}
+              </div>
+            </div>
 
             {/* Needs Practice */}
             {needsPractice.length > 0 && (
@@ -492,6 +517,29 @@ function NeetCodeCategoryCard({ category }: { category: NeetCodeCategoryProgress
   )
 }
 
+// Mirrors NeetCodeCategoryCard's DOM shape/sizing exactly so swapping
+// skeleton -> real content causes zero layout shift.
+function NeetCodeCategoryCardSkeleton() {
+  return (
+    <div className="bg-gray-900/50 rounded-lg p-4 animate-pulse">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-4 h-4 rounded-full bg-gray-700 shrink-0" />
+          <div className="h-4 w-24 bg-gray-700 rounded" />
+        </div>
+        <div className="h-3 w-8 bg-gray-700 rounded shrink-0 ml-2" />
+      </div>
+      <div className="w-full h-1.5 bg-gray-700 rounded-full mb-2" />
+      <div className="inline-block h-4 w-20 bg-gray-700 rounded-full" />
+    </div>
+  )
+}
+
+// Fills the min-h-[300px] chart container while stats are loading.
+function ChartSkeleton() {
+  return <div className="w-full h-[300px] bg-gray-700/40 rounded-lg animate-pulse" />
+}
+
 function StatCard({
   icon,
   label,
@@ -524,6 +572,22 @@ function StatCard({
   }
 
   return <div className={className}>{content}</div>
+}
+
+// Mirrors StatCard's DOM shape/sizing exactly so swapping skeleton -> real
+// content causes zero layout shift.
+function StatCardSkeleton() {
+  return (
+    <div className="rounded-lg p-4 flex items-center gap-4 w-full bg-gray-800 animate-pulse">
+      <div className="p-2 bg-gray-700 rounded-lg">
+        <div className="w-6 h-6" />
+      </div>
+      <div>
+        <div className="h-8 w-12 bg-gray-700 rounded mb-1.5" />
+        <div className="h-4 w-20 bg-gray-700 rounded" />
+      </div>
+    </div>
+  )
 }
 
 function ReviewsModal({
