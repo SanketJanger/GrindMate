@@ -34,4 +34,4 @@ run_worker_first = false
 # Environment variables
 [vars]
 ENVIRONMENT = "production"
-FRONTEND_URL = "https://grindmate.sanketjanger15.workers.dev"
+FRONTEND_URL = "https://grindmate.dev"
