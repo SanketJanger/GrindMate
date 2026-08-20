@@ -41,7 +41,7 @@ function App() {
         {/* Hero */}
         <div className="max-w-3xl mx-auto px-6 pt-24 pb-16 text-center">
           <h1 className="text-4xl md:text-5xl font-bold mb-5 leading-tight">
-            GrindMate — Track your LeetCode progress automatically
+            GrindMate - Track your DSA progress automatically
           </h1>
           <p className="text-lg text-gray-400 max-w-xl mx-auto">
             Solve problems on LeetCode. Log them here in one line. We handle reviews, reminders, and recommendations.
@@ -56,7 +56,7 @@ function App() {
               Solve a problem on LeetCode or NeetCode
             </HowItWorksStep>
             <HowItWorksStep number={2}>
-              Type <code className="bg-gray-800 text-green-400 rounded px-2 py-0.5 text-sm">"solved two sum easy 15 min"</code> in chat
+              Type <code className="bg-gray-800 text-green-400 rounded px-2 py-0.5 text-sm">"solved two sum"</code> in chat box
             </HowItWorksStep>
             <HowItWorksStep number={3}>
               Get daily email reminders for spaced repetition reviews
@@ -99,7 +99,7 @@ function App() {
               className="flex items-center gap-2 border border-gray-700 text-gray-200 hover:bg-gray-800 px-6 py-3 rounded-lg transition font-medium"
             >
               <Sparkles className="w-5 h-5" />
-              View Demo — no login needed
+              View Demo - no login needed
             </a>
             <a
               href="/auth/login"
@@ -167,7 +167,7 @@ function App() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {page === 'dashboard' && <Dashboard onNavigateToChat={() => setPage('chat')} isGuest={isGuest} />}
+          {page === 'dashboard' && <Dashboard onNavigateToChat={() => setPage('chat')} />}
           {page === 'chat' && <Chat />}
           {page === 'import' && <Import />}
         </div>

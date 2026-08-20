@@ -15,6 +15,7 @@ import {
 } from './auth';
 import { fetchLeetCodeProfile, fetchProblemDetails } from './leetcode';
 import { sendDailyReminders } from './email';
+import { NEETCODE_COMPANIES } from './neetcode';
 
 export { GrindMateAgent } from './agent';
 
@@ -300,6 +301,32 @@ app.get('/api/needs-practice', async (c) => {
   const response = await agent.fetch(agentRequest('http://agent/needs-practice', userId));
   const data = await response.json();
   return c.json(data);
+});
+
+// Static list, no per-user data needed — served directly rather than
+// round-tripping through the Durable Object.
+app.get('/api/neetcode/companies', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  return c.json({ companies: NEETCODE_COMPANIES });
+});
+
+app.get('/api/neetcode/by-company', async (c) => {
+  const userId = getCurrentUser(c.req.raw, c.env.SESSION_SECRET);
+  if (!userId) {
+    return c.json({ error: 'Not authenticated' }, 401);
+  }
+  const agent = getAgent(c.env, userId);
+  const company = c.req.query('company') || '';
+
+  const response = await agent.fetch(agentRequest(
+    `http://agent/neetcode/by-company?company=${encodeURIComponent(company)}`,
+    userId
+  ));
+  const data = await response.json();
+  return c.json(data, response.status as any);
 });
 
 app.get('/api/reviews', async (c) => {

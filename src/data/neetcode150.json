@@ -4,1049 +4,1912 @@
     "title": "Two Sum",
     "difficulty": "easy",
     "category": "Arrays & Hashing",
-    "slug": "two-sum"
+    "slug": "two-sum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 2,
     "title": "Add Two Numbers",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "add-two-numbers"
+    "slug": "add-two-numbers",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 3,
     "title": "Longest Substring Without Repeating Characters",
     "difficulty": "medium",
     "category": "Sliding Window",
-    "slug": "longest-substring-without-repeating-characters"
+    "slug": "longest-substring-without-repeating-characters",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 4,
     "title": "Median of Two Sorted Arrays",
     "difficulty": "hard",
     "category": "Binary Search",
-    "slug": "median-of-two-sorted-arrays"
+    "slug": "median-of-two-sorted-arrays",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 5,
     "title": "Longest Palindromic Substring",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "longest-palindromic-substring"
+    "slug": "longest-palindromic-substring",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 7,
     "title": "Reverse Integer",
     "difficulty": "medium",
     "category": "Bit Manipulation",
-    "slug": "reverse-integer"
+    "slug": "reverse-integer",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 10,
     "title": "Regular Expression Matching",
     "difficulty": "hard",
     "category": "2-D Dynamic Programming",
-    "slug": "regular-expression-matching"
+    "slug": "regular-expression-matching",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 11,
     "title": "Container With Most Water",
     "difficulty": "medium",
     "category": "Two Pointers",
-    "slug": "container-with-most-water"
+    "slug": "container-with-most-water",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 15,
     "title": "3Sum",
     "difficulty": "medium",
     "category": "Two Pointers",
-    "slug": "3sum"
+    "slug": "3sum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 17,
     "title": "Letter Combinations of a Phone Number",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "letter-combinations-of-a-phone-number"
+    "slug": "letter-combinations-of-a-phone-number",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 19,
     "title": "Remove Nth Node From End of List",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "remove-nth-node-from-end-of-list"
+    "slug": "remove-nth-node-from-end-of-list",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 20,
     "title": "Valid Parentheses",
     "difficulty": "easy",
     "category": "Stack",
-    "slug": "valid-parentheses"
+    "slug": "valid-parentheses",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 21,
     "title": "Merge Two Sorted Lists",
     "difficulty": "easy",
     "category": "Linked List",
-    "slug": "merge-two-sorted-lists"
+    "slug": "merge-two-sorted-lists",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 22,
     "title": "Generate Parentheses",
     "difficulty": "medium",
     "category": "Stack",
-    "slug": "generate-parentheses"
+    "slug": "generate-parentheses",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 23,
     "title": "Merge K Sorted Lists",
     "difficulty": "hard",
     "category": "Linked List",
-    "slug": "merge-k-sorted-lists"
+    "slug": "merge-k-sorted-lists",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 25,
     "title": "Reverse Nodes In K Group",
     "difficulty": "hard",
     "category": "Linked List",
-    "slug": "reverse-nodes-in-k-group"
+    "slug": "reverse-nodes-in-k-group",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 33,
     "title": "Search In Rotated Sorted Array",
     "difficulty": "medium",
     "category": "Binary Search",
-    "slug": "search-in-rotated-sorted-array"
+    "slug": "search-in-rotated-sorted-array",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 36,
     "title": "Valid Sudoku",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "valid-sudoku"
+    "slug": "valid-sudoku",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 39,
     "title": "Combination Sum",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "combination-sum"
+    "slug": "combination-sum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 40,
     "title": "Combination Sum II",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "combination-sum-ii"
+    "slug": "combination-sum-ii",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 42,
     "title": "Trapping Rain Water",
     "difficulty": "hard",
     "category": "Two Pointers",
-    "slug": "trapping-rain-water"
+    "slug": "trapping-rain-water",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 43,
     "title": "Multiply Strings",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "multiply-strings"
+    "slug": "multiply-strings",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 45,
     "title": "Jump Game II",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "jump-game-ii"
+    "slug": "jump-game-ii",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 46,
     "title": "Permutations",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "permutations"
+    "slug": "permutations",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 48,
     "title": "Rotate Image",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "rotate-image"
+    "slug": "rotate-image",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 49,
     "title": "Group Anagrams",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "group-anagrams"
+    "slug": "group-anagrams",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 50,
     "title": "Pow(x, n)",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "powx-n"
+    "slug": "powx-n",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 51,
     "title": "N Queens",
     "difficulty": "hard",
     "category": "Backtracking",
-    "slug": "n-queens"
+    "slug": "n-queens",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 53,
     "title": "Maximum Subarray",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "maximum-subarray"
+    "slug": "maximum-subarray",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 54,
     "title": "Spiral Matrix",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "spiral-matrix"
+    "slug": "spiral-matrix",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 55,
     "title": "Jump Game",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "jump-game"
+    "slug": "jump-game",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 56,
     "title": "Merge Intervals",
     "difficulty": "medium",
     "category": "Intervals",
-    "slug": "merge-intervals"
+    "slug": "merge-intervals",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 57,
     "title": "Insert Interval",
     "difficulty": "medium",
     "category": "Intervals",
-    "slug": "insert-interval"
+    "slug": "insert-interval",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 62,
     "title": "Unique Paths",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "unique-paths"
+    "slug": "unique-paths",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 66,
     "title": "Plus One",
     "difficulty": "easy",
     "category": "Math & Geometry",
-    "slug": "plus-one"
+    "slug": "plus-one",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 70,
     "title": "Climbing Stairs",
     "difficulty": "easy",
     "category": "1-D Dynamic Programming",
-    "slug": "climbing-stairs"
+    "slug": "climbing-stairs",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 72,
     "title": "Edit Distance",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "edit-distance"
+    "slug": "edit-distance",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 73,
     "title": "Set Matrix Zeroes",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "set-matrix-zeroes"
+    "slug": "set-matrix-zeroes",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 74,
     "title": "Search a 2D Matrix",
     "difficulty": "medium",
     "category": "Binary Search",
-    "slug": "search-a-2d-matrix"
+    "slug": "search-a-2d-matrix",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 76,
     "title": "Minimum Window Substring",
     "difficulty": "hard",
     "category": "Sliding Window",
-    "slug": "minimum-window-substring"
+    "slug": "minimum-window-substring",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 78,
     "title": "Subsets",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "subsets"
+    "slug": "subsets",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 79,
     "title": "Word Search",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "word-search"
+    "slug": "word-search",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 84,
     "title": "Largest Rectangle In Histogram",
     "difficulty": "hard",
     "category": "Stack",
-    "slug": "largest-rectangle-in-histogram"
+    "slug": "largest-rectangle-in-histogram",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 90,
     "title": "Subsets II",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "subsets-ii"
+    "slug": "subsets-ii",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 91,
     "title": "Decode Ways",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "decode-ways"
+    "slug": "decode-ways",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 97,
     "title": "Interleaving String",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "interleaving-string"
+    "slug": "interleaving-string",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 98,
     "title": "Validate Binary Search Tree",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "validate-binary-search-tree"
+    "slug": "validate-binary-search-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 100,
     "title": "Same Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "same-tree"
+    "slug": "same-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 102,
     "title": "Binary Tree Level Order Traversal",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "binary-tree-level-order-traversal"
+    "slug": "binary-tree-level-order-traversal",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 104,
     "title": "Maximum Depth of Binary Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "maximum-depth-of-binary-tree"
+    "slug": "maximum-depth-of-binary-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 105,
     "title": "Construct Binary Tree From Preorder And Inorder Traversal",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "construct-binary-tree-from-preorder-and-inorder-traversal"
+    "slug": "construct-binary-tree-from-preorder-and-inorder-traversal",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 110,
     "title": "Balanced Binary Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "balanced-binary-tree"
+    "slug": "balanced-binary-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 115,
     "title": "Distinct Subsequences",
     "difficulty": "hard",
     "category": "2-D Dynamic Programming",
-    "slug": "distinct-subsequences"
+    "slug": "distinct-subsequences",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 121,
     "title": "Best Time to Buy And Sell Stock",
     "difficulty": "easy",
     "category": "Sliding Window",
-    "slug": "best-time-to-buy-and-sell-stock"
+    "slug": "best-time-to-buy-and-sell-stock",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 124,
     "title": "Binary Tree Maximum Path Sum",
     "difficulty": "hard",
     "category": "Trees",
-    "slug": "binary-tree-maximum-path-sum"
+    "slug": "binary-tree-maximum-path-sum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 125,
     "title": "Valid Palindrome",
     "difficulty": "easy",
     "category": "Two Pointers",
-    "slug": "valid-palindrome"
+    "slug": "valid-palindrome",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 127,
     "title": "Word Ladder",
     "difficulty": "hard",
     "category": "Graphs",
-    "slug": "word-ladder"
+    "slug": "word-ladder",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 128,
     "title": "Longest Consecutive Sequence",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "longest-consecutive-sequence"
+    "slug": "longest-consecutive-sequence",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 130,
     "title": "Surrounded Regions",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "surrounded-regions"
+    "slug": "surrounded-regions",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 131,
     "title": "Palindrome Partitioning",
     "difficulty": "medium",
     "category": "Backtracking",
-    "slug": "palindrome-partitioning"
+    "slug": "palindrome-partitioning",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 133,
     "title": "Clone Graph",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "clone-graph"
+    "slug": "clone-graph",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 134,
     "title": "Gas Station",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "gas-station"
+    "slug": "gas-station",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 136,
     "title": "Single Number",
     "difficulty": "easy",
     "category": "Bit Manipulation",
-    "slug": "single-number"
+    "slug": "single-number",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 138,
     "title": "Copy List With Random Pointer",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "copy-list-with-random-pointer"
+    "slug": "copy-list-with-random-pointer",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 139,
     "title": "Word Break",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "word-break"
+    "slug": "word-break",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 141,
     "title": "Linked List Cycle",
     "difficulty": "easy",
     "category": "Linked List",
-    "slug": "linked-list-cycle"
+    "slug": "linked-list-cycle",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 143,
     "title": "Reorder List",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "reorder-list"
+    "slug": "reorder-list",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 146,
     "title": "LRU Cache",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "lru-cache"
+    "slug": "lru-cache",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 150,
     "title": "Evaluate Reverse Polish Notation",
     "difficulty": "medium",
     "category": "Stack",
-    "slug": "evaluate-reverse-polish-notation"
+    "slug": "evaluate-reverse-polish-notation",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 152,
     "title": "Maximum Product Subarray",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "maximum-product-subarray"
+    "slug": "maximum-product-subarray",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 153,
     "title": "Find Minimum In Rotated Sorted Array",
     "difficulty": "medium",
     "category": "Binary Search",
-    "slug": "find-minimum-in-rotated-sorted-array"
+    "slug": "find-minimum-in-rotated-sorted-array",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 155,
     "title": "Min Stack",
     "difficulty": "medium",
     "category": "Stack",
-    "slug": "min-stack"
+    "slug": "min-stack",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 167,
     "title": "Two Sum II Input Array Is Sorted",
     "difficulty": "medium",
     "category": "Two Pointers",
-    "slug": "two-sum-ii-input-array-is-sorted"
+    "slug": "two-sum-ii-input-array-is-sorted",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 190,
     "title": "Reverse Bits",
     "difficulty": "easy",
     "category": "Bit Manipulation",
-    "slug": "reverse-bits"
+    "slug": "reverse-bits",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 191,
     "title": "Number of 1 Bits",
     "difficulty": "easy",
     "category": "Bit Manipulation",
-    "slug": "number-of-1-bits"
+    "slug": "number-of-1-bits",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 198,
     "title": "House Robber",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "house-robber"
+    "slug": "house-robber",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 199,
     "title": "Binary Tree Right Side View",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "binary-tree-right-side-view"
+    "slug": "binary-tree-right-side-view",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 200,
     "title": "Number of Islands",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "number-of-islands"
+    "slug": "number-of-islands",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 202,
     "title": "Happy Number",
     "difficulty": "easy",
     "category": "Math & Geometry",
-    "slug": "happy-number"
+    "slug": "happy-number",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 206,
     "title": "Reverse Linked List",
     "difficulty": "easy",
     "category": "Linked List",
-    "slug": "reverse-linked-list"
+    "slug": "reverse-linked-list",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 207,
     "title": "Course Schedule",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "course-schedule"
+    "slug": "course-schedule",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 208,
     "title": "Implement Trie Prefix Tree",
     "difficulty": "medium",
     "category": "Tries",
-    "slug": "implement-trie-prefix-tree"
+    "slug": "implement-trie-prefix-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 210,
     "title": "Course Schedule II",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "course-schedule-ii"
+    "slug": "course-schedule-ii",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 211,
     "title": "Design Add And Search Words Data Structure",
     "difficulty": "medium",
     "category": "Tries",
-    "slug": "design-add-and-search-words-data-structure"
+    "slug": "design-add-and-search-words-data-structure",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 212,
     "title": "Word Search II",
     "difficulty": "hard",
     "category": "Tries",
-    "slug": "word-search-ii"
+    "slug": "word-search-ii",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 213,
     "title": "House Robber II",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "house-robber-ii"
+    "slug": "house-robber-ii",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 215,
     "title": "Kth Largest Element In An Array",
     "difficulty": "medium",
     "category": "Heap / Priority Queue",
-    "slug": "kth-largest-element-in-an-array"
+    "slug": "kth-largest-element-in-an-array",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 217,
     "title": "Contains Duplicate",
     "difficulty": "easy",
     "category": "Arrays & Hashing",
-    "slug": "contains-duplicate"
+    "slug": "contains-duplicate",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 226,
     "title": "Invert Binary Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "invert-binary-tree"
+    "slug": "invert-binary-tree",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 230,
     "title": "Kth Smallest Element In a Bst",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "kth-smallest-element-in-a-bst"
+    "slug": "kth-smallest-element-in-a-bst",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 235,
     "title": "Lowest Common Ancestor of a Binary Search Tree",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "lowest-common-ancestor-of-a-binary-search-tree"
+    "slug": "lowest-common-ancestor-of-a-binary-search-tree",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 238,
     "title": "Product of Array Except Self",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "product-of-array-except-self"
+    "slug": "product-of-array-except-self",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 239,
     "title": "Sliding Window Maximum",
     "difficulty": "hard",
     "category": "Sliding Window",
-    "slug": "sliding-window-maximum"
+    "slug": "sliding-window-maximum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 242,
     "title": "Valid Anagram",
     "difficulty": "easy",
     "category": "Arrays & Hashing",
-    "slug": "valid-anagram"
+    "slug": "valid-anagram",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 252,
     "title": "Meeting Rooms",
     "difficulty": "easy",
     "category": "Intervals",
-    "slug": "meeting-rooms"
+    "slug": "meeting-rooms",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 253,
     "title": "Meeting Rooms II",
     "difficulty": "medium",
     "category": "Intervals",
-    "slug": "meeting-rooms-ii"
+    "slug": "meeting-rooms-ii",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 261,
     "title": "Graph Valid Tree",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "graph-valid-tree"
+    "slug": "graph-valid-tree",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 268,
     "title": "Missing Number",
     "difficulty": "easy",
     "category": "Bit Manipulation",
-    "slug": "missing-number"
+    "slug": "missing-number",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 269,
     "title": "Alien Dictionary",
     "difficulty": "hard",
     "category": "Advanced Graphs",
-    "slug": "alien-dictionary"
+    "slug": "alien-dictionary",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 271,
     "title": "Encode and Decode Strings",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "encode-and-decode-strings"
+    "slug": "encode-and-decode-strings",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 286,
     "title": "Walls And Gates",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "walls-and-gates"
+    "slug": "walls-and-gates",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 287,
     "title": "Find The Duplicate Number",
     "difficulty": "medium",
     "category": "Linked List",
-    "slug": "find-the-duplicate-number"
+    "slug": "find-the-duplicate-number",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 295,
     "title": "Find Median From Data Stream",
     "difficulty": "hard",
     "category": "Heap / Priority Queue",
-    "slug": "find-median-from-data-stream"
+    "slug": "find-median-from-data-stream",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 297,
     "title": "Serialize And Deserialize Binary Tree",
     "difficulty": "hard",
     "category": "Trees",
-    "slug": "serialize-and-deserialize-binary-tree"
+    "slug": "serialize-and-deserialize-binary-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 300,
     "title": "Longest Increasing Subsequence",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "longest-increasing-subsequence"
+    "slug": "longest-increasing-subsequence",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 309,
     "title": "Best Time to Buy And Sell Stock With Cooldown",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "best-time-to-buy-and-sell-stock-with-cooldown"
+    "slug": "best-time-to-buy-and-sell-stock-with-cooldown",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google"
+    ]
   },
   {
     "leetcode_id": 312,
     "title": "Burst Balloons",
     "difficulty": "hard",
     "category": "2-D Dynamic Programming",
-    "slug": "burst-balloons"
+    "slug": "burst-balloons",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 322,
     "title": "Coin Change",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "coin-change"
+    "slug": "coin-change",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 323,
     "title": "Number of Connected Components In An Undirected Graph",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "number-of-connected-components-in-an-undirected-graph"
+    "slug": "number-of-connected-components-in-an-undirected-graph",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 329,
     "title": "Longest Increasing Path In a Matrix",
     "difficulty": "hard",
     "category": "2-D Dynamic Programming",
-    "slug": "longest-increasing-path-in-a-matrix"
+    "slug": "longest-increasing-path-in-a-matrix",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 332,
     "title": "Reconstruct Itinerary",
     "difficulty": "hard",
     "category": "Advanced Graphs",
-    "slug": "reconstruct-itinerary"
+    "slug": "reconstruct-itinerary",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 338,
     "title": "Counting Bits",
     "difficulty": "easy",
     "category": "Bit Manipulation",
-    "slug": "counting-bits"
+    "slug": "counting-bits",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 347,
     "title": "Top K Frequent Elements",
     "difficulty": "medium",
     "category": "Arrays & Hashing",
-    "slug": "top-k-frequent-elements"
+    "slug": "top-k-frequent-elements",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 355,
     "title": "Design Twitter",
     "difficulty": "medium",
     "category": "Heap / Priority Queue",
-    "slug": "design-twitter"
+    "slug": "design-twitter",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google"
+    ]
   },
   {
     "leetcode_id": 371,
     "title": "Sum of Two Integers",
     "difficulty": "medium",
     "category": "Bit Manipulation",
-    "slug": "sum-of-two-integers"
+    "slug": "sum-of-two-integers",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 416,
     "title": "Partition Equal Subset Sum",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "partition-equal-subset-sum"
+    "slug": "partition-equal-subset-sum",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 417,
     "title": "Pacific Atlantic Water Flow",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "pacific-atlantic-water-flow"
+    "slug": "pacific-atlantic-water-flow",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 424,
     "title": "Longest Repeating Character Replacement",
     "difficulty": "medium",
     "category": "Sliding Window",
-    "slug": "longest-repeating-character-replacement"
+    "slug": "longest-repeating-character-replacement",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 435,
     "title": "Non Overlapping Intervals",
     "difficulty": "medium",
     "category": "Intervals",
-    "slug": "non-overlapping-intervals"
+    "slug": "non-overlapping-intervals",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 494,
     "title": "Target Sum",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "target-sum"
+    "slug": "target-sum",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 518,
     "title": "Coin Change II",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "coin-change-ii"
+    "slug": "coin-change-ii",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 543,
     "title": "Diameter of Binary Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "diameter-of-binary-tree"
+    "slug": "diameter-of-binary-tree",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 567,
     "title": "Permutation In String",
     "difficulty": "medium",
     "category": "Sliding Window",
-    "slug": "permutation-in-string"
+    "slug": "permutation-in-string",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 572,
     "title": "Subtree of Another Tree",
     "difficulty": "easy",
     "category": "Trees",
-    "slug": "subtree-of-another-tree"
+    "slug": "subtree-of-another-tree",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 621,
     "title": "Task Scheduler",
     "difficulty": "medium",
     "category": "Heap / Priority Queue",
-    "slug": "task-scheduler"
+    "slug": "task-scheduler",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 647,
     "title": "Palindromic Substrings",
     "difficulty": "medium",
     "category": "1-D Dynamic Programming",
-    "slug": "palindromic-substrings"
+    "slug": "palindromic-substrings",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 678,
     "title": "Valid Parenthesis String",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "valid-parenthesis-string"
+    "slug": "valid-parenthesis-string",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 684,
     "title": "Redundant Connection",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "redundant-connection"
+    "slug": "redundant-connection",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 695,
     "title": "Max Area of Island",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "max-area-of-island"
+    "slug": "max-area-of-island",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 703,
     "title": "Kth Largest Element In a Stream",
     "difficulty": "easy",
     "category": "Heap / Priority Queue",
-    "slug": "kth-largest-element-in-a-stream"
+    "slug": "kth-largest-element-in-a-stream",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 704,
     "title": "Binary Search",
     "difficulty": "easy",
     "category": "Binary Search",
-    "slug": "binary-search"
+    "slug": "binary-search",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 739,
     "title": "Daily Temperatures",
     "difficulty": "medium",
     "category": "Stack",
-    "slug": "daily-temperatures"
+    "slug": "daily-temperatures",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 743,
     "title": "Network Delay Time",
     "difficulty": "medium",
     "category": "Advanced Graphs",
-    "slug": "network-delay-time"
+    "slug": "network-delay-time",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 746,
     "title": "Min Cost Climbing Stairs",
     "difficulty": "easy",
     "category": "1-D Dynamic Programming",
-    "slug": "min-cost-climbing-stairs"
+    "slug": "min-cost-climbing-stairs",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 763,
     "title": "Partition Labels",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "partition-labels"
+    "slug": "partition-labels",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 778,
     "title": "Swim In Rising Water",
     "difficulty": "hard",
     "category": "Advanced Graphs",
-    "slug": "swim-in-rising-water"
+    "slug": "swim-in-rising-water",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 787,
     "title": "Cheapest Flights Within K Stops",
     "difficulty": "medium",
     "category": "Advanced Graphs",
-    "slug": "cheapest-flights-within-k-stops"
+    "slug": "cheapest-flights-within-k-stops",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 846,
     "title": "Hand of Straights",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "hand-of-straights"
+    "slug": "hand-of-straights",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 853,
     "title": "Car Fleet",
     "difficulty": "medium",
     "category": "Stack",
-    "slug": "car-fleet"
+    "slug": "car-fleet",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 875,
     "title": "Koko Eating Bananas",
     "difficulty": "medium",
     "category": "Binary Search",
-    "slug": "koko-eating-bananas"
+    "slug": "koko-eating-bananas",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 973,
     "title": "K Closest Points to Origin",
     "difficulty": "medium",
     "category": "Heap / Priority Queue",
-    "slug": "k-closest-points-to-origin"
+    "slug": "k-closest-points-to-origin",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 981,
     "title": "Time Based Key Value Store",
     "difficulty": "medium",
     "category": "Binary Search",
-    "slug": "time-based-key-value-store"
+    "slug": "time-based-key-value-store",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta",
+      "Netflix"
+    ]
   },
   {
     "leetcode_id": 994,
     "title": "Rotting Oranges",
     "difficulty": "medium",
     "category": "Graphs",
-    "slug": "rotting-oranges"
+    "slug": "rotting-oranges",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 1046,
     "title": "Last Stone Weight",
     "difficulty": "easy",
     "category": "Heap / Priority Queue",
-    "slug": "last-stone-weight"
+    "slug": "last-stone-weight",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 1143,
     "title": "Longest Common Subsequence",
     "difficulty": "medium",
     "category": "2-D Dynamic Programming",
-    "slug": "longest-common-subsequence"
+    "slug": "longest-common-subsequence",
+    "companies": [
+      "Amazon",
+      "Apple",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 1448,
     "title": "Count Good Nodes In Binary Tree",
     "difficulty": "medium",
     "category": "Trees",
-    "slug": "count-good-nodes-in-binary-tree"
+    "slug": "count-good-nodes-in-binary-tree",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 1584,
     "title": "Min Cost to Connect All Points",
     "difficulty": "medium",
     "category": "Advanced Graphs",
-    "slug": "min-cost-to-connect-all-points"
+    "slug": "min-cost-to-connect-all-points",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   },
   {
     "leetcode_id": 1851,
     "title": "Minimum Interval to Include Each Query",
     "difficulty": "hard",
     "category": "Intervals",
-    "slug": "minimum-interval-to-include-each-query"
+    "slug": "minimum-interval-to-include-each-query",
+    "companies": [
+      "Amazon",
+      "Google"
+    ]
   },
   {
     "leetcode_id": 1899,
     "title": "Merge Triplets to Form Target Triplet",
     "difficulty": "medium",
     "category": "Greedy",
-    "slug": "merge-triplets-to-form-target-triplet"
+    "slug": "merge-triplets-to-form-target-triplet",
+    "companies": [
+      "Google"
+    ]
   },
   {
     "leetcode_id": 2013,
     "title": "Detect Squares",
     "difficulty": "medium",
     "category": "Math & Geometry",
-    "slug": "detect-squares"
+    "slug": "detect-squares",
+    "companies": [
+      "Amazon",
+      "Google",
+      "Meta"
+    ]
   }
 ]

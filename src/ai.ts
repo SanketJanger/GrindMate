@@ -158,6 +158,7 @@ Categories:
 - GET_RECOMMENDATION: User asks what to practice next
 - GET_WEEKLY_SUMMARY: User asks for weekly summary/report
 - GET_REVIEWS: User asks what's due for review, or about spaced repetition reviews (e.g. "show my reviews", "what do I need to review")
+- COMPANY_PREP: User wants a practice list for a specific company's interview (mentions "prep for", "practice for", or "interview prep" together with a company name like Amazon, Google, Meta, Apple, Netflix, or Facebook)
 - GENERAL_CHAT: Everything else
 
 Return ONLY the category name, nothing else.`;
@@ -173,6 +174,6 @@ Return ONLY the category name, nothing else.`;
   const text = ((response as any).response || 'GENERAL_CHAT').trim().toUpperCase();
 
   // Validate response
-  const validIntents = ['LOG_PROBLEM', 'GET_STATS', 'GET_RECOMMENDATION', 'GET_WEEKLY_SUMMARY', 'GET_REVIEWS', 'GENERAL_CHAT'];
+  const validIntents = ['LOG_PROBLEM', 'GET_STATS', 'GET_RECOMMENDATION', 'GET_WEEKLY_SUMMARY', 'GET_REVIEWS', 'COMPANY_PREP', 'GENERAL_CHAT'];
   return validIntents.includes(text) ? text : 'GENERAL_CHAT';
 }

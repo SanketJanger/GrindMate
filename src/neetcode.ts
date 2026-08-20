@@ -6,6 +6,7 @@ export interface NeetCodeProblem {
   difficulty: 'easy' | 'medium' | 'hard';
   category: string;
   slug: string;
+  companies: string[];
 }
 
 export const NEETCODE_150 = neetcode150 as NeetCodeProblem[];
@@ -13,6 +14,36 @@ export const NEETCODE_150 = neetcode150 as NeetCodeProblem[];
 export const NEETCODE_CATEGORIES: string[] = Array.from(
   new Set(NEETCODE_150.map((p) => p.category))
 );
+
+// FAANG-only for now — company tags sourced from liquidslr/leetcode-company-wise-problems
+// (community-aggregated LeetCode Premium data), cross-referenced against these 150
+// problems by normalized title. Treat as "frequently associated with", not a guarantee.
+export const NEETCODE_COMPANIES: string[] = Array.from(
+  new Set(NEETCODE_150.flatMap((p) => p.companies))
+).sort();
+
+const COMPANY_ALIASES: Record<string, string> = {
+  amazon: 'Amazon',
+  google: 'Google',
+  apple: 'Apple',
+  netflix: 'Netflix',
+  meta: 'Meta',
+  facebook: 'Meta',
+  fb: 'Meta',
+};
+
+// Finds a company mention anywhere in a chat message, e.g. "prep for amazon"
+// or "meta interview prep". Used by handleCompanyRequest once detectIntent
+// has already classified the message as COMPANY_PREP.
+export function extractCompanyFromMessage(message: string): string | null {
+  const lower = message.toLowerCase();
+  for (const [alias, canonical] of Object.entries(COMPANY_ALIASES)) {
+    if (new RegExp(`\\b${alias}\\b`).test(lower)) {
+      return canonical;
+    }
+  }
+  return null;
+}
 
 function normalizeTitle(title: string): string {
   return title

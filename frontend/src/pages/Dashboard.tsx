@@ -52,6 +52,15 @@ interface NeedsPracticeGroup {
   problems: NeedsPracticeProblem[]
 }
 
+interface CompanyProblem {
+  leetcode_id: number
+  title: string
+  difficulty: string
+  category: string
+  slug: string
+  solved: boolean
+}
+
 const COLORS = ['#22c55e', '#eab308', '#ef4444']
 
 const DEMO_BANNER_DISMISSED_KEY = 'demo_banner_dismissed'
@@ -68,6 +77,10 @@ export default function Dashboard({
   const [needsPractice, setNeedsPractice] = useState<NeedsPracticeGroup[]>([])
   const [statsLoading, setStatsLoading] = useState(true)
   const [neetcodeLoading, setNeetcodeLoading] = useState(true)
+  const [companies, setCompanies] = useState<string[]>([])
+  const [selectedCompany, setSelectedCompany] = useState('')
+  const [companyProblems, setCompanyProblems] = useState<CompanyProblem[]>([])
+  const [companyLoading, setCompanyLoading] = useState(false)
   const [demoBannerDismissed, setDemoBannerDismissed] = useState(
     () => localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) === 'true'
   )
@@ -82,6 +95,7 @@ export default function Dashboard({
     fetchStats()
     fetchNeetCodeProgress()
     fetchNeedsPractice()
+    fetchCompanies()
   }, [])
 
   const fetchStats = async () => {
@@ -115,6 +129,37 @@ export default function Dashboard({
       setNeedsPractice(data.patterns || [])
     } catch (err) {
       console.error('Failed to fetch needs-practice suggestions:', err)
+    }
+  }
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('/api/neetcode/companies')
+      const data = await res.json()
+      setCompanies(data.companies || [])
+    } catch (err) {
+      console.error('Failed to fetch companies:', err)
+    }
+  }
+
+  const handleCompanyChange = async (company: string) => {
+    setSelectedCompany(company)
+
+    if (!company) {
+      setCompanyProblems([])
+      return
+    }
+
+    setCompanyLoading(true)
+    try {
+      const res = await fetch(`/api/neetcode/by-company?company=${encodeURIComponent(company)}`)
+      const data = await res.json()
+      setCompanyProblems(data.problems || [])
+    } catch (err) {
+      console.error('Failed to fetch company problems:', err)
+      setCompanyProblems([])
+    } finally {
+      setCompanyLoading(false)
     }
   }
 
@@ -173,6 +218,14 @@ export default function Dashboard({
     name: p.pattern.replace('_', ' '),
     count: p.solved_count
   })) || []
+
+  // Progress bar reflects whichever view is active: the company filter
+  // when one's selected, otherwise overall NeetCode 150 progress.
+  const neetcodeProgressPercent = selectedCompany
+    ? (companyProblems.length > 0
+        ? (companyProblems.filter(p => p.solved).length / companyProblems.length) * 100
+        : 0)
+    : (neetcode && neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0)
 
   return (
     <div className="h-full bg-gray-900 text-white p-6">
@@ -313,37 +366,59 @@ export default function Dashboard({
 
             {/* NeetCode 150 Progress */}
             <div className="bg-gray-800 rounded-lg p-6 mb-8 min-h-[200px]">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
                 <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
-                {!neetcodeLoading && neetcode && (
-                  <span className="text-gray-400 text-sm">
-                    {neetcode.solved}/{neetcode.total} solved
-                  </span>
-                )}
+                <div className="flex items-center gap-3">
+                  {selectedCompany ? (
+                    !companyLoading && (
+                      <span className="text-gray-400 text-sm">
+                        {companyProblems.filter(p => p.solved).length}/{companyProblems.length} solved
+                      </span>
+                    )
+                  ) : (
+                    !neetcodeLoading && neetcode && (
+                      <span className="text-gray-400 text-sm">
+                        {neetcode.solved}/{neetcode.total} solved
+                      </span>
+                    )
+                  )}
+                  {companies.length > 0 && (
+                    <select
+                      value={selectedCompany}
+                      onChange={(e) => handleCompanyChange(e.target.value)}
+                      className="bg-gray-900 border border-gray-700 text-gray-300 text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">All Categories</option>
+                      {companies.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
 
               <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
                 <div
                   className="h-full bg-blue-500 rounded-full transition-all"
-                  style={{
-                    width: !neetcodeLoading && neetcode && neetcode.total > 0
-                      ? `${(neetcode.solved / neetcode.total) * 100}%`
-                      : '0%',
-                  }}
+                  style={{ width: `${neetcodeProgressPercent}%` }}
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {neetcodeLoading || !neetcode ? (
-                  Array.from({ length: 18 }).map((_, i) => (
-                    <NeetCodeCategoryCardSkeleton key={i} />
-                  ))
-                ) : (
-                  neetcode.categories.map((cat) => (
-                    <NeetCodeCategoryCard key={cat.category} category={cat} />
-                  ))
-                )}
-              </div>
+              {selectedCompany ? (
+                <CompanyProblemsList problems={companyProblems} loading={companyLoading} />
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {neetcodeLoading || !neetcode ? (
+                    Array.from({ length: 18 }).map((_, i) => (
+                      <NeetCodeCategoryCardSkeleton key={i} />
+                    ))
+                  ) : (
+                    neetcode.categories.map((cat) => (
+                      <NeetCodeCategoryCard key={cat.category} category={cat} />
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Needs Practice */}
@@ -459,6 +534,55 @@ const DIFFICULTY_TEXT_CLASS: Record<string, string> = {
   easy: 'text-green-400',
   medium: 'text-yellow-400',
   hard: 'text-red-400',
+}
+
+function CompanyProblemsList({ problems, loading }: { problems: CompanyProblem[]; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {Array.from({ length: 9 }).map((_, i) => (
+          <NeetCodeCategoryCardSkeleton key={i} />
+        ))}
+      </div>
+    )
+  }
+
+  if (problems.length === 0) {
+    return (
+      <div className="text-gray-400 text-sm text-center py-8">
+        No tagged problems found for this company.
+      </div>
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {problems.map((p) => (
+        <a
+          key={p.leetcode_id}
+          href={`https://leetcode.com/problems/${p.slug}/`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-gray-900/50 hover:bg-gray-900 rounded-lg p-4 transition block"
+        >
+          <div className="flex items-center gap-2 min-w-0 mb-2">
+            {p.solved ? (
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-green-400" />
+            ) : (
+              <Circle className="w-4 h-4 shrink-0 text-gray-500" />
+            )}
+            <span className="text-sm font-medium truncate">{p.title}</span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className={`text-xs ${DIFFICULTY_TEXT_CLASS[p.difficulty] || 'text-gray-400'}`}>
+              {p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1)}
+            </span>
+            <span className="text-xs text-gray-500 truncate">{p.category}</span>
+          </div>
+        </a>
+      ))}
+    </div>
+  )
 }
 
 function NeedsPracticeCard({ group }: { group: NeedsPracticeGroup }) {

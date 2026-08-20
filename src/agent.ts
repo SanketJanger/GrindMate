@@ -1,6 +1,6 @@
 import { Env, Problem, UserStats, PatternProgress, ChatMessage } from './types';
 import { chat, parseProblem, detectIntent, getRecommendations, getWeeklySummary } from './ai';
-import { matchNeetCodeProblem, NEETCODE_150, PATTERN_TO_NEETCODE_CATEGORIES } from './neetcode';
+import { matchNeetCodeProblem, NEETCODE_150, NEETCODE_COMPANIES, PATTERN_TO_NEETCODE_CATEGORIES, extractCompanyFromMessage } from './neetcode';
 import { GUEST_USER_ID } from './auth';
 
 interface ReviewItem {
@@ -329,6 +329,10 @@ export class GrindMateAgent {
       return this.handleGetNeedsPractice();
     }
 
+    if (url.pathname === '/neetcode/by-company' && request.method === 'GET') {
+      return this.handleGetByCompany(url);
+    }
+
     if (url.pathname === '/history' && request.method === 'GET') {
       return this.handleGetHistory();
     }
@@ -540,6 +544,9 @@ export class GrindMateAgent {
           break;
         case 'GET_REVIEWS':
           response = await this.handleReviewsRequest();
+          break;
+        case 'COMPANY_PREP':
+          response = await this.handleCompanyRequest(message);
           break;
         default:
           response = await this.handleGeneralChat(message);
@@ -772,6 +779,39 @@ export class GrindMateAgent {
     return response;
   }
 
+  private async handleCompanyRequest(message: string): Promise<string> {
+    const company = extractCompanyFromMessage(message);
+
+    if (!company) {
+      return `Which company? I track prep lists for ${NEETCODE_COMPANIES.join(', ')}.\nTry: "prep for amazon"`;
+    }
+
+    const companyProblems = NEETCODE_150.filter(p => p.companies.includes(company));
+    const solvedIds = await this.getSolvedLeetcodeIds();
+    const unsolved = companyProblems.filter(p => !solvedIds.has(p.leetcode_id));
+    const solvedCount = companyProblems.length - unsolved.length;
+
+    if (unsolved.length === 0) {
+      return `🎉 ${company} prep: ${solvedCount}/${companyProblems.length} done — you've cleared every ${company}-tagged problem!`;
+    }
+
+    const DIFFICULTY_ORDER: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
+    const sorted = [...unsolved].sort((a, b) => DIFFICULTY_ORDER[a.difficulty] - DIFFICULTY_ORDER[b.difficulty]);
+
+    const maxShown = 5;
+    let response = `🏢 ${company} prep: ${solvedCount}/${companyProblems.length} done\n`;
+
+    sorted.slice(0, maxShown).forEach((p, i) => {
+      response += `${i + 1}. ${p.title} (${capitalize(p.difficulty)})\n`;
+    });
+
+    if (unsolved.length > maxShown) {
+      response += `...and ${unsolved.length - maxShown} more\n`;
+    }
+
+    return response.trimEnd();
+  }
+
   private async handleStatsRequest(): Promise<string> {
     const stats = await this.getUserStats();
     
@@ -916,10 +956,7 @@ export class GrindMateAgent {
       .sort((a, b) => a.solved_count - b.solved_count)
       .slice(0, 6);
 
-    const solvedResult = await this.env.DB.prepare(`
-      SELECT DISTINCT leetcode_id FROM problems WHERE user_id = ? AND leetcode_id IS NOT NULL
-    `).bind(this.userId).all();
-    const solvedIds = new Set((solvedResult.results || []).map((row: any) => row.leetcode_id));
+    const solvedIds = await this.getSolvedLeetcodeIds();
 
     const needsPractice = weakPatterns
       .map(wp => {
@@ -940,6 +977,33 @@ export class GrindMateAgent {
       .filter(group => group.problems.length > 0);
 
     return Response.json({ patterns: needsPractice });
+  }
+
+  private async handleGetByCompany(url: URL): Promise<Response> {
+    const company = url.searchParams.get('company') || '';
+
+    if (!NEETCODE_COMPANIES.includes(company)) {
+      return Response.json({ error: 'Unknown company' }, { status: 400 });
+    }
+
+    const companyProblems = NEETCODE_150.filter(p => p.companies.includes(company));
+    const solvedIds = await this.getSolvedLeetcodeIds();
+
+    const problems = companyProblems.map(p => ({
+      leetcode_id: p.leetcode_id,
+      title: p.title,
+      difficulty: p.difficulty,
+      category: p.category,
+      slug: p.slug,
+      solved: solvedIds.has(p.leetcode_id),
+    }));
+
+    return Response.json({
+      company,
+      total: problems.length,
+      solved: problems.filter(p => p.solved).length,
+      problems,
+    });
   }
 
   private async handleGetHistory(): Promise<Response> {
@@ -1003,6 +1067,13 @@ export class GrindMateAgent {
       SELECT * FROM problems WHERE user_id = ? ORDER BY solved_at DESC LIMIT ?
     `).bind(this.userId, limit).all();
     return result.results || [];
+  }
+
+  private async getSolvedLeetcodeIds(): Promise<Set<number>> {
+    const result = await this.env.DB.prepare(`
+      SELECT DISTINCT leetcode_id FROM problems WHERE user_id = ? AND leetcode_id IS NOT NULL
+    `).bind(this.userId).all();
+    return new Set((result.results || []).map((row: any) => row.leetcode_id));
   }
 
   private async calculateStreak(): Promise<{ current: number; longest: number }> {
