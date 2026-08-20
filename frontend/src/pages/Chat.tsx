@@ -104,7 +104,7 @@ export default function Chat() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Log a problem or ask for help..."
+            placeholder='Try: "solved two sum easy 15 min"'
             className="flex-1 bg-gray-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={loading}
           />

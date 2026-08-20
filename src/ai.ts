@@ -1,12 +1,13 @@
 // GrindMate AI Integration (Workers AI - Llama 3.3)
 
 import { Env, ParsedProblem, UserStats, PatternProgress } from './types';
-import { 
-  SYSTEM_PROMPT, 
-  PARSE_PROBLEM_PROMPT, 
+import {
+  SYSTEM_PROMPT,
+  GENERAL_CHAT_SYSTEM_PROMPT,
+  PARSE_PROBLEM_PROMPT,
   RECOMMENDATION_PROMPT,
   WEEKLY_SUMMARY_PROMPT,
-  CHAT_RESPONSE_PROMPT 
+  CHAT_RESPONSE_PROMPT
 } from './prompts';
 
 // Main chat function - handles all user interactions
@@ -23,11 +24,11 @@ export async function chat(
 
   const response = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: GENERAL_CHAT_SYSTEM_PROMPT },
       { role: 'user', content: prompt }
     ],
     max_tokens: 500,
-    temperature: 0.7
+    temperature: 0
   });
 
   return (response as any).response || 'Sorry, I had trouble processing that. Try again?';

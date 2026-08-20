@@ -542,9 +542,7 @@ export class GrindMateAgent {
           response = await this.handleReviewsRequest();
           break;
         default:
-          const stats = await this.getUserStats();
-          const recent = await this.getRecentProblems(5);
-          response = await chat(this.env, message, stats, recent);
+          response = await this.handleGeneralChat(message);
       }
 
       const assistantMsg: ChatMessage = {
@@ -790,6 +788,15 @@ export class GrindMateAgent {
     response += `⚠️ Reviews due: ${dueReviews}`;
 
     return response;
+  }
+
+  // Catch-all for messages that don't match a specific intent. The actual
+  // topic-focus/redirect behavior lives in GENERAL_CHAT_SYSTEM_PROMPT
+  // (prompts.ts), passed to the model by chat() in ai.ts.
+  private async handleGeneralChat(message: string): Promise<string> {
+    const stats = await this.getUserStats();
+    const recent = await this.getRecentProblems(5);
+    return await chat(this.env, message, stats, recent);
   }
 
   private async handleRecommendationRequest(): Promise<string> {

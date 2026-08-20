@@ -54,11 +54,22 @@ interface NeedsPracticeGroup {
 
 const COLORS = ['#22c55e', '#eab308', '#ef4444']
 
-export default function Dashboard() {
+const DEMO_BANNER_DISMISSED_KEY = 'demo_banner_dismissed'
+
+export default function Dashboard({
+  onNavigateToChat,
+  isGuest = false,
+}: {
+  onNavigateToChat: () => void
+  isGuest?: boolean
+}) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [neetcode, setNeetcode] = useState<NeetCodeProgress | null>(null)
   const [needsPractice, setNeedsPractice] = useState<NeedsPracticeGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [demoBannerDismissed, setDemoBannerDismissed] = useState(
+    () => localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) === 'true'
+  )
 
   const [showReviews, setShowReviews] = useState(false)
   const [dueReviews, setDueReviews] = useState<ReviewDue[]>([])
@@ -144,6 +155,11 @@ export default function Dashboard() {
     }
   }
 
+  const dismissDemoBanner = () => {
+    localStorage.setItem(DEMO_BANNER_DISMISSED_KEY, 'true')
+    setDemoBannerDismissed(true)
+  }
+
   if (loading) {
     return (
       <div className="h-full bg-gray-900 flex items-center justify-center">
@@ -168,6 +184,10 @@ export default function Dashboard() {
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-2">GrindMate</h1>
         <p className="text-gray-400 mb-8">Your DSA Buddy</p>
+
+        {isGuest && !demoBannerDismissed && (
+          <DemoBanner onDismiss={dismissDemoBanner} />
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
@@ -231,84 +251,157 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4">By Difficulty</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={difficultyData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {difficultyData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        {stats?.total_problems === 0 && !isGuest ? (
+          <EmptyDashboardState onOpenChat={onNavigateToChat} />
+        ) : (
+          <>
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4">By Difficulty</h2>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={difficultyData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${value}`}
+                      >
+                        {difficultyData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
 
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4">Top Patterns</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={patternData} layout="vertical">
-                  <XAxis type="number" stroke="#9ca3af" />
-                  <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
-                  <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
-                  <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* NeetCode 150 Progress */}
-        {neetcode && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
-              <span className="text-gray-400 text-sm">
-                {neetcode.solved}/{neetcode.total} solved
-              </span>
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4">Top Patterns</h2>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={patternData} layout="vertical">
+                      <XAxis type="number" stroke="#9ca3af" />
+                      <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
+                      <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
+                      <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
             </div>
 
-            <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
-              <div
-                className="h-full bg-blue-500 rounded-full transition-all"
-                style={{ width: `${neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0}%` }}
-              />
-            </div>
+            {/* NeetCode 150 Progress */}
+            {neetcode && (
+              <div className="bg-gray-800 rounded-lg p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
+                  <span className="text-gray-400 text-sm">
+                    {neetcode.solved}/{neetcode.total} solved
+                  </span>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {neetcode.categories.map((cat) => (
-                <NeetCodeCategoryCard key={cat.category} category={cat} />
-              ))}
-            </div>
-          </div>
-        )}
+                <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0}%` }}
+                  />
+                </div>
 
-        {/* Needs Practice */}
-        {needsPractice.length > 0 && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-lg font-semibold mb-4">Needs Practice</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {needsPractice.map((group) => (
-                <NeedsPracticeCard key={group.pattern} group={group} />
-              ))}
-            </div>
-          </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {neetcode.categories.map((cat) => (
+                    <NeetCodeCategoryCard key={cat.category} category={cat} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Needs Practice */}
+            {needsPractice.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4">Needs Practice</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {needsPractice.map((group) => (
+                    <NeedsPracticeCard key={group.pattern} group={group} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
+    </div>
+  )
+}
+
+const EXAMPLE_LOG_COMMANDS = [
+  'solved two sum easy 15 min',
+  'solved valid parentheses easy 10 min',
+  'solved 3sum medium 25 min',
+]
+
+function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div className="relative bg-yellow-900/30 border border-yellow-700 rounded-lg p-5 mb-8">
+      <button
+        onClick={onDismiss}
+        className="absolute top-3 right-3 text-yellow-400/70 hover:text-yellow-300 transition"
+        aria-label="Dismiss"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <h3 className="font-semibold text-yellow-400 mb-2">👋 This is a demo with sample data</h3>
+
+      <p className="text-gray-300 text-sm mb-2">
+        In your own account, just go to Chat and type:
+      </p>
+      <code className="inline-block bg-gray-900 text-green-400 rounded px-3 py-1.5 text-sm mb-3">
+        "solved two sum easy 15 min"
+      </code>
+
+      <p className="text-gray-300 text-sm mb-4">
+        GrindMate will track patterns, schedule reviews, and email you reminders automatically.
+      </p>
+
+      <a
+        href="/auth/login"
+        className="inline-block bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+      >
+        Login with GitHub to start tracking
+      </a>
+    </div>
+  )
+}
+
+function EmptyDashboardState({ onOpenChat }: { onOpenChat: () => void }) {
+  return (
+    <div className="flex flex-col items-center text-center py-16 px-4">
+      <h2 className="text-2xl font-bold mb-2">Welcome to GrindMate! 👋</h2>
+      <p className="text-gray-400 mb-6">Log your first problem to get started</p>
+
+      <div className="bg-gray-800 rounded-lg p-4 max-w-md w-full mb-6">
+        <p className="text-gray-400 mb-2 text-sm">Go to Chat and type:</p>
+        <div className="space-y-2">
+          {EXAMPLE_LOG_COMMANDS.map((cmd) => (
+            <code key={cmd} className="block bg-gray-900 text-green-400 rounded px-3 py-2 text-sm text-left">
+              "{cmd}"
+            </code>
+          ))}
+        </div>
+      </div>
+
+      <button
+        onClick={onOpenChat}
+        className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-medium transition"
+      >
+        Open Chat →
+      </button>
     </div>
   )
 }

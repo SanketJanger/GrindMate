@@ -2,10 +2,8 @@ import { Env } from './types';
 import { GUEST_USER_ID } from './auth';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
-const APP_URL = 'https://grindmate.sanketjanger15.workers.dev';
-// TODO: replace with a sending domain verified in your Resend account —
-// Resend will reject every send until this is a real, verified domain.
-const FROM_ADDRESS = 'GrindMate <onboarding@resend.dev>';
+const APP_URL = 'https://grindmate.dev';
+const FROM_ADDRESS = 'GrindMate <notifications@grindmate.dev>';
 
 interface DueReviewForEmail {
   title: string;
@@ -78,9 +76,12 @@ async function sendReviewEmail(
     }),
   });
 
+  const responseBody = await res.json().catch(() => null);
+  console.log('[resend] status:', res.status);
+  console.log('[resend] response:', JSON.stringify(responseBody));
+
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    console.error(`[email] Resend API error for ${username}: ${res.status} ${body}`);
+    console.error('[resend] FAILED:', res.status, JSON.stringify(responseBody));
     return false;
   }
 
