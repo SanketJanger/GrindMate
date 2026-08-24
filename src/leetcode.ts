@@ -19,7 +19,8 @@ export async function fetchLeetCodeProfile(username: string): Promise<{
   recentSubmissions: RecentSubmission[];
 } | null> {
   try {
-    const query = `
+    const query
+     = `
       query getUserProfile($username: String!) {
         matchedUser(username: $username) {
           submitStats {

@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
-import { LayoutDashboard, MessageSquare, LogIn, LogOut, User, Download, Sparkles, Info, Target, RotateCw, Mail, Lightbulb } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, LogIn, LogOut, User, Sparkles, Info, Target, RotateCw, Mail, Lightbulb } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
-import Import from './pages/Import'
 
 const GUEST_USER_ID = 'guest_demo'
 
 function App() {
-  const [page, setPage] = useState<'dashboard' | 'chat' | 'import'>('dashboard')
+  const [page, setPage] = useState<'dashboard' | 'chat'>('dashboard')
   const [user, setUser] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -143,14 +142,6 @@ function App() {
           >
             <MessageSquare className="w-6 h-6" />
           </button>
-          <button
-            onClick={() => setPage('import')}
-            className={`p-3 rounded-lg transition ${page === 'import' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
-            title="Import from LeetCode"
-          >
-            <Download className="w-6 h-6" />
-          </button>
-
           <div className="flex-1" />
 
           <div className="p-2 text-gray-400" title={user}>
@@ -169,7 +160,6 @@ function App() {
         <div className="flex-1 overflow-y-auto">
           {page === 'dashboard' && <Dashboard onNavigateToChat={() => setPage('chat')} />}
           {page === 'chat' && <Chat />}
-          {page === 'import' && <Import />}
         </div>
       </div>
 
@@ -187,13 +177,6 @@ function App() {
         >
           <MessageSquare className="w-5 h-5" />
           <span className="text-xs">Chat</span>
-        </button>
-        <button
-          onClick={() => setPage('import')}
-          className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition ${page === 'import' ? 'text-blue-400' : 'text-gray-400 hover:text-white'}`}
-        >
-          <Download className="w-5 h-5" />
-          <span className="text-xs">Import</span>
         </button>
       </nav>
     </div>

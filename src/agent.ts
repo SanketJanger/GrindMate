@@ -25,6 +25,13 @@ function normalizeForMatch(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
+// Streak/activity day boundary is US Eastern, not UTC, so a problem solved
+// at 11pm ET (still "today" to the user) doesn't get miscounted as
+// tomorrow's activity just because it's already past midnight UTC.
+function easternDateString(date: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(date);
+}
+
 function titleCase(text: string): string {
   return text
     .replace(/_/g, ' ')
@@ -162,7 +169,7 @@ export class GrindMateAgent {
 
     for (const seed of GUEST_SEED_PROBLEMS) {
       const solvedAt = new Date(now - seed.daysAgo * 24 * 60 * 60 * 1000).toISOString();
-      const solvedDate = solvedAt.split('T')[0];
+      const solvedDate = easternDateString(new Date(solvedAt));
 
       await this.env.DB.prepare(`
         INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, time_spent_min, struggled, solved_at, neetcode, neetcode_category)
@@ -487,7 +494,7 @@ export class GrindMateAgent {
         neetcodeMatch?.category ?? null
       ).run();
 
-      const solvedDate = solvedAt.split('T')[0];
+      const solvedDate = easternDateString(new Date(solvedAt));
       await this.env.DB.prepare(`
         INSERT INTO daily_activity (user_id, date, problems_solved, total_time_min)
         VALUES (?, ?, 1, 0)
@@ -597,7 +604,7 @@ export class GrindMateAgent {
       return `I don't see a previous log for "${rawTitle}" yet. Log it fresh first, then you can re-attempt it later!`;
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = easternDateString();
 
     await this.env.DB.prepare(`
       INSERT INTO problems (user_id, leetcode_id, title, difficulty, patterns, struggled, solved_at, neetcode, neetcode_category, re_attempt)
@@ -674,7 +681,7 @@ export class GrindMateAgent {
 
     if (this.isGuest) return GUEST_READONLY_MESSAGE;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = easternDateString();
 
     try {
       const result = await this.env.DB.prepare(`
@@ -1088,9 +1095,9 @@ export class GrindMateAgent {
     let longest = 0;
     let tempStreak = 1;
     
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    
+    const today = easternDateString();
+    const yesterday = easternDateString(new Date(Date.now() - 86400000));
+
     if (dates[0] === today || dates[0] === yesterday) {
       current = 1;
       for (let i = 1; i < dates.length; i++) {

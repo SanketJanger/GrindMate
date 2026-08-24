@@ -405,7 +405,16 @@ app.get('*', async (c) => {
 export default {
   fetch: app.fetch,
   async scheduled(controller: ScheduledController, env: AuthEnv, ctx: ExecutionContext) {
-    console.log('[cron] Daily review reminder run starting');
+    // Two crons fire per day (13:00 and 14:00 UTC) to cover both EDT and EST;
+    // only the one that's actually 9:00 AM Eastern right now should send.
+    const nyHour = Number(
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).format(new Date())
+    );
+    if (nyHour !== 9) {
+      console.log(`[cron] Skipping — not 9:00 AM ET (currently ${nyHour}:00 ET)`);
+      return;
+    }
+    console.log('[cron] Daily review reminder run starting (9:00 AM ET)');
     ctx.waitUntil(sendDailyReminders(env));
   },
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { MessageSquare, Target, Flame, TrendingUp, BookOpen, CheckCircle2, CircleDot, Circle, X, CheckCircle } from 'lucide-react'
+import { MessageSquare, Target, Flame, TrendingUp, BookOpen, CheckCircle2, CircleDot, Circle, X, CheckCircle, Clock } from 'lucide-react'
 
 interface Stats {
   total_problems: number
@@ -52,15 +52,6 @@ interface NeedsPracticeGroup {
   problems: NeedsPracticeProblem[]
 }
 
-interface CompanyProblem {
-  leetcode_id: number
-  title: string
-  difficulty: string
-  category: string
-  slug: string
-  solved: boolean
-}
-
 const COLORS = ['#22c55e', '#eab308', '#ef4444']
 
 const DEMO_BANNER_DISMISSED_KEY = 'demo_banner_dismissed'
@@ -75,12 +66,7 @@ export default function Dashboard({
   const [stats, setStats] = useState<Stats | null>(null)
   const [neetcode, setNeetcode] = useState<NeetCodeProgress | null>(null)
   const [needsPractice, setNeedsPractice] = useState<NeedsPracticeGroup[]>([])
-  const [statsLoading, setStatsLoading] = useState(true)
-  const [neetcodeLoading, setNeetcodeLoading] = useState(true)
-  const [companies, setCompanies] = useState<string[]>([])
-  const [selectedCompany, setSelectedCompany] = useState('')
-  const [companyProblems, setCompanyProblems] = useState<CompanyProblem[]>([])
-  const [companyLoading, setCompanyLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [demoBannerDismissed, setDemoBannerDismissed] = useState(
     () => localStorage.getItem(DEMO_BANNER_DISMISSED_KEY) === 'true'
   )
@@ -95,7 +81,6 @@ export default function Dashboard({
     fetchStats()
     fetchNeetCodeProgress()
     fetchNeedsPractice()
-    fetchCompanies()
   }, [])
 
   const fetchStats = async () => {
@@ -106,7 +91,7 @@ export default function Dashboard({
     } catch (err) {
       console.error('Failed to fetch stats:', err)
     } finally {
-      setStatsLoading(false)
+      setLoading(false)
     }
   }
 
@@ -117,8 +102,6 @@ export default function Dashboard({
       setNeetcode(data)
     } catch (err) {
       console.error('Failed to fetch NeetCode progress:', err)
-    } finally {
-      setNeetcodeLoading(false)
     }
   }
 
@@ -129,37 +112,6 @@ export default function Dashboard({
       setNeedsPractice(data.patterns || [])
     } catch (err) {
       console.error('Failed to fetch needs-practice suggestions:', err)
-    }
-  }
-
-  const fetchCompanies = async () => {
-    try {
-      const res = await fetch('/api/neetcode/companies')
-      const data = await res.json()
-      setCompanies(data.companies || [])
-    } catch (err) {
-      console.error('Failed to fetch companies:', err)
-    }
-  }
-
-  const handleCompanyChange = async (company: string) => {
-    setSelectedCompany(company)
-
-    if (!company) {
-      setCompanyProblems([])
-      return
-    }
-
-    setCompanyLoading(true)
-    try {
-      const res = await fetch(`/api/neetcode/by-company?company=${encodeURIComponent(company)}`)
-      const data = await res.json()
-      setCompanyProblems(data.problems || [])
-    } catch (err) {
-      console.error('Failed to fetch company problems:', err)
-      setCompanyProblems([])
-    } finally {
-      setCompanyLoading(false)
     }
   }
 
@@ -208,6 +160,14 @@ export default function Dashboard({
     setDemoBannerDismissed(true)
   }
 
+  if (loading) {
+    return (
+      <div className="h-full bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-400">Loading stats...</div>
+      </div>
+    )
+  }
+
   const difficultyData = stats ? [
     { name: 'Easy', value: stats.problems_by_difficulty.easy },
     { name: 'Medium', value: stats.problems_by_difficulty.medium },
@@ -219,19 +179,16 @@ export default function Dashboard({
     count: p.solved_count
   })) || []
 
-  // Progress bar reflects whichever view is active: the company filter
-  // when one's selected, otherwise overall NeetCode 150 progress.
-  const neetcodeProgressPercent = selectedCompany
-    ? (companyProblems.length > 0
-        ? (companyProblems.filter(p => p.solved).length / companyProblems.length) * 100
-        : 0)
-    : (neetcode && neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0)
-
   return (
     <div className="h-full bg-gray-900 text-white p-6">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-2">GrindMate</h1>
-        <p className="text-gray-400 mb-8">Your DSA Buddy</p>
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">GrindMate</h1>
+            <p className="text-gray-400">Track. Review. Master</p>
+          </div>
+          <StreakTimer />
+        </div>
 
         {isGuest && !demoBannerDismissed && (
           <DemoBanner onDismiss={dismissDemoBanner} />
@@ -239,45 +196,33 @@ export default function Dashboard({
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          {statsLoading ? (
-            <>
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-              <StatCardSkeleton />
-            </>
-          ) : (
-            <>
-              <StatCard
-                icon={<Target className="w-6 h-6 text-blue-400" />}
-                label="Total Solved"
-                value={stats?.total_problems || 0}
-              />
-              <StatCard
-                icon={<Flame className="w-6 h-6 text-orange-400" />}
-                label="Current Streak"
-                value={`${stats?.current_streak || 0} days`}
-              />
-              <StatCard
-                icon={<TrendingUp className="w-6 h-6 text-green-400" />}
-                label="Best Streak"
-                value={`${stats?.longest_streak || 0} days`}
-              />
-              <StatCard
-                icon={<MessageSquare className="w-6 h-6 text-purple-400" />}
-                label="Patterns"
-                value={stats?.patterns.length || 0}
-              />
-              <StatCard
-                icon={<BookOpen className="w-6 h-6 text-yellow-400" />}
-                label="Reviews Due"
-                value={stats?.reviews_due || 0}
-                highlight={!!stats?.reviews_due && stats.reviews_due > 0}
-                onClick={openReviews}
-              />
-            </>
-          )}
+          <StatCard
+            icon={<Target className="w-6 h-6 text-blue-400" />}
+            label="Total Solved"
+            value={stats?.total_problems || 0}
+          />
+          <StatCard
+            icon={<Flame className="w-6 h-6 text-orange-400" />}
+            label="Current Streak"
+            value={`${stats?.current_streak || 0} days`}
+          />
+          <StatCard
+            icon={<TrendingUp className="w-6 h-6 text-green-400" />}
+            label="Best Streak"
+            value={`${stats?.longest_streak || 0} days`}
+          />
+          <StatCard
+            icon={<MessageSquare className="w-6 h-6 text-purple-400" />}
+            label="Patterns"
+            value={stats?.patterns.length || 0}
+          />
+          <StatCard
+            icon={<BookOpen className="w-6 h-6 text-yellow-400" />}
+            label="Reviews Due"
+            value={stats?.reviews_due || 0}
+            highlight={!!stats?.reviews_due && stats.reviews_due > 0}
+            onClick={openReviews}
+          />
         </div>
 
         {/* Reviews Alert */}
@@ -319,107 +264,67 @@ export default function Dashboard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="bg-gray-800 rounded-lg p-6">
                 <h2 className="text-lg font-semibold mb-4">By Difficulty</h2>
-                <div className="min-h-[300px]">
-                  {statsLoading ? (
-                    <ChartSkeleton />
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={difficultyData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={100}
-                          dataKey="value"
-                          label={({ name, value }) => `${name}: ${value}`}
-                        >
-                          {difficultyData.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={difficultyData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={100}
+                        dataKey="value"
+                        label={({ name, value }) => `${name}: ${value}`}
+                      >
+                        {difficultyData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
               <div className="bg-gray-800 rounded-lg p-6">
                 <h2 className="text-lg font-semibold mb-4">Top Patterns</h2>
-                <div className="min-h-[300px]">
-                  {statsLoading ? (
-                    <ChartSkeleton />
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={patternData} layout="vertical">
-                        <XAxis type="number" stroke="#9ca3af" />
-                        <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
-                        <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={patternData} layout="vertical">
+                      <XAxis type="number" stroke="#9ca3af" />
+                      <YAxis type="category" dataKey="name" stroke="#9ca3af" width={100} />
+                      <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none' }} />
+                      <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </div>
 
             {/* NeetCode 150 Progress */}
-            <div className="bg-gray-800 rounded-lg p-6 mb-8 min-h-[200px]">
-              <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
-                <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
-                <div className="flex items-center gap-3">
-                  {selectedCompany ? (
-                    !companyLoading && (
-                      <span className="text-gray-400 text-sm">
-                        {companyProblems.filter(p => p.solved).length}/{companyProblems.length} solved
-                      </span>
-                    )
-                  ) : (
-                    !neetcodeLoading && neetcode && (
-                      <span className="text-gray-400 text-sm">
-                        {neetcode.solved}/{neetcode.total} solved
-                      </span>
-                    )
-                  )}
-                  {companies.length > 0 && (
-                    <select
-                      value={selectedCompany}
-                      onChange={(e) => handleCompanyChange(e.target.value)}
-                      className="bg-gray-900 border border-gray-700 text-gray-300 text-sm rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">All Categories</option>
-                      {companies.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  )}
+            {neetcode && (
+              <div className="bg-gray-800 rounded-lg p-6 mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold">NeetCode 150 Progress</h2>
+                  <span className="text-gray-400 text-sm">
+                    {neetcode.solved}/{neetcode.total} solved
+                  </span>
                 </div>
-              </div>
 
-              <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 rounded-full transition-all"
-                  style={{ width: `${neetcodeProgressPercent}%` }}
-                />
-              </div>
+                <div className="w-full h-2 bg-gray-700 rounded-full mb-6 overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 rounded-full transition-all"
+                    style={{ width: `${neetcode.total > 0 ? (neetcode.solved / neetcode.total) * 100 : 0}%` }}
+                  />
+                </div>
 
-              {selectedCompany ? (
-                <CompanyProblemsList problems={companyProblems} loading={companyLoading} />
-              ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {neetcodeLoading || !neetcode ? (
-                    Array.from({ length: 18 }).map((_, i) => (
-                      <NeetCodeCategoryCardSkeleton key={i} />
-                    ))
-                  ) : (
-                    neetcode.categories.map((cat) => (
-                      <NeetCodeCategoryCard key={cat.category} category={cat} />
-                    ))
-                  )}
+                  {neetcode.categories.map((cat) => (
+                    <NeetCodeCategoryCard key={cat.category} category={cat} />
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Needs Practice */}
             {needsPractice.length > 0 && (
@@ -435,6 +340,61 @@ export default function Dashboard({
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// Streaks reset at midnight US Eastern (see easternDateString in src/agent.ts),
+// so the countdown target has to match that boundary, not the viewer's local
+// midnight or UTC. Figured out by reading the Eastern wall-clock time via
+// Intl and computing how far it is from the next Eastern midnight.
+function getMsUntilMidnightEastern(): number {
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false,
+  }).formatToParts(now)
+
+  const get = (type: string) => Number(parts.find(p => p.type === type)?.value ?? 0)
+  // Intl reports midnight as hour 24, not 0 — normalize so the math below is 0-based.
+  const hour = get('hour') % 24
+  const minute = get('minute')
+  const second = get('second')
+
+  const secondsSinceMidnight = hour * 3600 + minute * 60 + second
+  const secondsUntilMidnight = 24 * 3600 - secondsSinceMidnight
+  return secondsUntilMidnight * 1000
+}
+
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function StreakTimer() {
+  const [msLeft, setMsLeft] = useState(getMsUntilMidnightEastern)
+
+  useEffect(() => {
+    const id = setInterval(() => setMsLeft(getMsUntilMidnightEastern()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div
+      className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm text-gray-300"
+      title="Streaks reset at midnight Eastern Time"
+    >
+      <Clock className="w-4 h-4 text-orange-400 shrink-0" />
+      <span>
+        Streak resets in{' '}
+        <span className="font-mono font-semibold text-white tabular-nums">{formatCountdown(msLeft)}</span>
+      </span>
     </div>
   )
 }
@@ -536,55 +496,6 @@ const DIFFICULTY_TEXT_CLASS: Record<string, string> = {
   hard: 'text-red-400',
 }
 
-function CompanyProblemsList({ problems, loading }: { problems: CompanyProblem[]; loading: boolean }) {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <NeetCodeCategoryCardSkeleton key={i} />
-        ))}
-      </div>
-    )
-  }
-
-  if (problems.length === 0) {
-    return (
-      <div className="text-gray-400 text-sm text-center py-8">
-        No tagged problems found for this company.
-      </div>
-    )
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-      {problems.map((p) => (
-        <a
-          key={p.leetcode_id}
-          href={`https://leetcode.com/problems/${p.slug}/`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-gray-900/50 hover:bg-gray-900 rounded-lg p-4 transition block"
-        >
-          <div className="flex items-center gap-2 min-w-0 mb-2">
-            {p.solved ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-green-400" />
-            ) : (
-              <Circle className="w-4 h-4 shrink-0 text-gray-500" />
-            )}
-            <span className="text-sm font-medium truncate">{p.title}</span>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <span className={`text-xs ${DIFFICULTY_TEXT_CLASS[p.difficulty] || 'text-gray-400'}`}>
-              {p.difficulty.charAt(0).toUpperCase() + p.difficulty.slice(1)}
-            </span>
-            <span className="text-xs text-gray-500 truncate">{p.category}</span>
-          </div>
-        </a>
-      ))}
-    </div>
-  )
-}
-
 function NeedsPracticeCard({ group }: { group: NeedsPracticeGroup }) {
   return (
     <div className="bg-gray-900/50 rounded-lg p-4">
@@ -641,29 +552,6 @@ function NeetCodeCategoryCard({ category }: { category: NeetCodeCategoryProgress
   )
 }
 
-// Mirrors NeetCodeCategoryCard's DOM shape/sizing exactly so swapping
-// skeleton -> real content causes zero layout shift.
-function NeetCodeCategoryCardSkeleton() {
-  return (
-    <div className="bg-gray-900/50 rounded-lg p-4 animate-pulse">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-4 h-4 rounded-full bg-gray-700 shrink-0" />
-          <div className="h-4 w-24 bg-gray-700 rounded" />
-        </div>
-        <div className="h-3 w-8 bg-gray-700 rounded shrink-0 ml-2" />
-      </div>
-      <div className="w-full h-1.5 bg-gray-700 rounded-full mb-2" />
-      <div className="inline-block h-4 w-20 bg-gray-700 rounded-full" />
-    </div>
-  )
-}
-
-// Fills the min-h-[300px] chart container while stats are loading.
-function ChartSkeleton() {
-  return <div className="w-full h-[300px] bg-gray-700/40 rounded-lg animate-pulse" />
-}
-
 function StatCard({
   icon,
   label,
@@ -696,22 +584,6 @@ function StatCard({
   }
 
   return <div className={className}>{content}</div>
-}
-
-// Mirrors StatCard's DOM shape/sizing exactly so swapping skeleton -> real
-// content causes zero layout shift.
-function StatCardSkeleton() {
-  return (
-    <div className="rounded-lg p-4 flex items-center gap-4 w-full bg-gray-800 animate-pulse">
-      <div className="p-2 bg-gray-700 rounded-lg">
-        <div className="w-6 h-6" />
-      </div>
-      <div>
-        <div className="h-8 w-12 bg-gray-700 rounded mb-1.5" />
-        <div className="h-4 w-20 bg-gray-700 rounded" />
-      </div>
-    </div>
-  )
 }
 
 function ReviewsModal({

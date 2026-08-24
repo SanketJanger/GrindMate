@@ -49,7 +49,7 @@ ${items}
     Start Reviewing
   </a>
   <p style="color: #64748b; font-size: 12px; margin-top: 40px;">
-    GrindMate • Your DSA Buddy
+    GrindMate • Track. Review. Master.
   </p>
 </body>
 </html>`;
