@@ -4,7 +4,7 @@ I built this because I was mass-applying to jobs and grinding LeetCode like ever
 
 GrindMate is a full-stack app that runs entirely on Cloudflare's edge. You log problems by chatting with it, it extracts patterns and difficulty using AI, tracks your streaks, and tells you what to practice next. Each user gets isolated data via GitHub OAuth — your practice history is yours alone.
 
-**Live:** [grindmate.sanketjanger15.workers.dev](https://grindmate.sanketjanger15.workers.dev)
+**Live:** [grindmate.sanketjanger15.workers.dev](https://grindmate.dev/)
 
 ---
 
