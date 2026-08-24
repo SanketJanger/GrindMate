@@ -38,3 +38,6 @@ run_worker_first = false
 [vars]
 ENVIRONMENT = "production"
 FRONTEND_URL = "https://grindmate.dev"
+# INGEST_API_KEY (auth for the usage-analytics-api Cloud Run /ingest
+# endpoint) is a secret, not a var — set it with:
+#   wrangler secret put INGEST_API_KEY

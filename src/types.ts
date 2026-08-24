@@ -74,6 +74,7 @@ export interface Env {
   ENVIRONMENT: string;
   RESEND_API_KEY: string;
   CRON_SECRET: string;
+  INGEST_API_KEY: string;
 }
 
 export interface AuthEnv extends Env {

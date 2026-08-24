@@ -2,6 +2,7 @@ import { Env, Problem, UserStats, PatternProgress, ChatMessage } from './types';
 import { chat, parseProblem, detectIntent, getRecommendations, getWeeklySummary } from './ai';
 import { matchNeetCodeProblem, NEETCODE_150, NEETCODE_COMPANIES, PATTERN_TO_NEETCODE_CATEGORIES, extractCompanyFromMessage } from './neetcode';
 import { GUEST_USER_ID } from './auth';
+import { trackEvent } from './analytics';
 
 interface ReviewItem {
   id: string;
@@ -131,10 +132,16 @@ export class GrindMateAgent {
   private userId: string = 'default';
   private messages: ChatMessage[] = [];
   private reviewQueue: ReviewItem[] = [];
+  // Scoped to this DO instance's lifetime (constructed once, reused across
+  // requests until the isolate evicts it), not to a browser session — it's
+  // the closest boundary available for grouping analytics events without a
+  // separate session mechanism.
+  private sessionId: string;
 
   constructor(state: DurableObjectState, env: Env) {
     this.state = state;
     this.env = env;
+    this.sessionId = crypto.randomUUID();
 
     this.state.blockConcurrencyWhile(async () => {
       const storedMessages = await this.state.storage.get<ChatMessage[]>('messages');
@@ -303,6 +310,31 @@ export class GrindMateAgent {
 
     await this.state.storage.put('reviewQueue', this.reviewQueue);
     await this.scheduleNextAlarm();
+
+    if (nextReview) {
+      await trackEvent(this.env, {
+        type: 'review_completed',
+        component: 'spaced_repetition',
+        userId: this.userId,
+        sessionId: this.sessionId,
+        metadata: {
+          review_number: review.review_number,
+          problem_title: review.title,
+          difficulty: review.difficulty,
+        },
+      });
+    } else {
+      // No next review was scheduled — this was the 3rd and final review.
+      await trackEvent(this.env, {
+        type: 'problem_mastered',
+        component: 'spaced_repetition',
+        userId: this.userId,
+        sessionId: this.sessionId,
+        metadata: {
+          problem_title: review.title,
+        },
+      });
+    }
 
     return nextReview;
   }
@@ -718,6 +750,20 @@ export class GrindMateAgent {
         `).bind(this.userId, pattern).run();
       }
 
+      await trackEvent(this.env, {
+        type: 'problem_logged',
+        component: 'chat',
+        userId: this.userId,
+        sessionId: this.sessionId,
+        metadata: {
+          difficulty: parsed.difficulty,
+          patterns: parsed.patterns,
+          time_spent_min: parsed.time_spent_min,
+          neetcode: neetcodeMatch ? 1 : 0,
+          neetcode_category: neetcodeMatch?.category ?? null,
+        },
+      });
+
       if (result?.id) {
         await this.scheduleReviews({
           leetcode_id: leetcodeId,
@@ -905,6 +951,14 @@ export class GrindMateAgent {
   }
 
   private async handleGetStats(): Promise<Response> {
+    await trackEvent(this.env, {
+      type: 'session_start',
+      component: 'dashboard',
+      userId: this.userId,
+      sessionId: this.sessionId,
+      metadata: {},
+    });
+
     const stats = await this.getUserStats();
     const due = this.getDueReviews();
     const pending = this.reviewQueue.filter(r => !r.completed);
